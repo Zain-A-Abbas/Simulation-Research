@@ -1,17 +1,15 @@
-[gd_scene load_steps=5 format=3 uid="uid://ca56nxvpxws5u"]
+[gd_scene load_steps=4 format=3 uid="uid://ca56nxvpxws5u"]
 
 [ext_resource type="Script" uid="uid://db1i01tuitgo1" path="res://Preliminary Simulation/2d.gd" id="1_5tdrk"]
-[ext_resource type="Shader" uid="uid://dtlfaofeh4x8l" path="res://Preliminary Simulation/agent_visualizer.gdshader" id="2_hejfd"]
+[ext_resource type="Script" uid="uid://4hn1dxlpjqwy" path="res://Preliminary Simulation/rendering_test.gd" id="2_hejfd"]
 
-[sub_resource type="Texture2DRD" id="Texture2DRD_hejfd"]
-
-[sub_resource type="ShaderMaterial" id="ShaderMaterial_3owe0"]
-shader = ExtResource("2_hejfd")
-shader_parameter/agent_data = SubResource("Texture2DRD_hejfd")
+[sub_resource type="MultiMesh" id="MultiMesh_3owe0"]
 
 [node name="Node2D" type="Node2D"]
 script = ExtResource("1_5tdrk")
 
-[node name="AgentParticles" type="GPUParticles2D" parent="."]
-unique_name_in_owner = true
-process_material = SubResource("ShaderMaterial_3owe0")
+[node name="MultiMeshInstance2D" type="MultiMeshInstance2D" parent="."]
+multimesh = SubResource("MultiMesh_3owe0")
+
+[node name="RenderingTest" type="Node2D" parent="."]
+script = ExtResource("2_hejfd")
