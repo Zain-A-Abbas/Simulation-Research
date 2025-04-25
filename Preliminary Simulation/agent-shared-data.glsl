@@ -15,6 +15,8 @@ layout(set = 0, binding = 3, std430) restrict buffer Params {
     float agent_count;
     float screen_width;
     float screen_height;
+    float image_size;
     float delta;
 } params;
 
+layout(rgba32f, binding = 4) uniform image2D agent_data;

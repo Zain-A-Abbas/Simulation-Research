@@ -1,10 +1,18 @@
 extends Node2D
 
+@onready var agent_particles: GPUParticles2D = $AgentParticles
 
-const AGENT_COUNT = 1048576
+const AGENT_COUNT = 32768#65536
+
+# Am image is used to store the position and color of the awgents
+var IMAGE_SIZE = int(ceil(sqrt(AGENT_COUNT)))
+var agent_data : Image
+var agent_data_texture_rd: Texture2DRD = Texture2DRD.new()
+
 const MAX_VELOCITY: float = 16.0
 var agent_positions: PackedVector2Array = []
 var agent_velocities: PackedVector2Array = []
+
 # Color is stored as ints, holding either 1s or 0s. The value is used to deterine the red channel
 # of the agents. 
 var agent_colors: PackedInt32Array = []
@@ -19,14 +27,17 @@ var uniform_set: RID
 var agent_position_buffer: RID
 var agent_velocity_buffer: RID
 var agent_color_buffer: RID
+var agent_data_buffer: RID
 
 var param_buffer: RID
 var param_uniform: RDUniform
 
 func _ready() -> void:
 	generate_agents()
-	$RenderingTest.init(AGENT_COUNT)
+	agent_particles.amount = AGENT_COUNT
 	
+	agent_data = Image.create(IMAGE_SIZE, IMAGE_SIZE, false, Image.FORMAT_RGBAF)
+	agent_data_texture_rd = agent_particles.process_material.get_shader_parameter("agent_data")
 	RenderingServer.call_on_render_thread(setup_compute)
 
 func generate_agents():
@@ -51,6 +62,7 @@ func generate_parameter_buffer(delta: float) -> PackedByteArray:
 		AGENT_COUNT,
 		get_viewport_rect().size.x,
 		get_viewport_rect().size.y,
+		IMAGE_SIZE,
 		delta
 	]).to_byte_array()
 	return params_buffer_bytes 
@@ -84,12 +96,24 @@ func setup_compute():
 	param_buffer = rendering_device.storage_buffer_create(param_buffer_bytes.size(), param_buffer_bytes)
 	param_uniform = generate_compute_uniform(param_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 3)
 	
+	# Prepares the image data to bind it to the GPU
+	var texture_format: RDTextureFormat = RDTextureFormat.new()
+	texture_format.width = IMAGE_SIZE
+	texture_format.height = IMAGE_SIZE
+	texture_format.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SFLOAT
+	texture_format.usage_bits = RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT | RenderingDevice.TEXTURE_USAGE_STORAGE_BIT
+	
+	var texture_view: RDTextureView = RDTextureView.new()
+	agent_data_buffer = rendering_device.texture_create(texture_format, texture_view, [agent_data.get_data()])
+	agent_data_texture_rd.texture_rd_rid = agent_data_buffer
+	var agent_data_buffer_uniform = generate_compute_uniform(agent_data_buffer, RenderingDevice.UNIFORM_TYPE_IMAGE, 4)
 	
 	agent_bindings = [
 		agent_position_uniform,
 		agent_velocity_uniform,
 		agent_color_uniform,
-		param_uniform
+		param_uniform,
+		agent_data_buffer_uniform
 	]
 	
 	uniform_set = rendering_device.uniform_set_create(agent_bindings, agent_compute_shader, 0)
@@ -110,6 +134,7 @@ func _exit_tree() -> void:
 	RenderingServer.call_on_render_thread(free_resources)
 
 func free_resources():
+	rendering_device.free_rid(agent_data_buffer)
 	rendering_device.free_rid(agent_color_buffer)
 	rendering_device.free_rid(agent_velocity_buffer)
 	rendering_device.free_rid(agent_position_buffer)
