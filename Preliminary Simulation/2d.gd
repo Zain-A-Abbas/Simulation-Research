@@ -6,9 +6,9 @@ const AGENT_COUNT = 65536
 const MAX_VELOCITY: float = 4.0
 var agent_positions: PackedVector2Array = []
 var agent_velocities: PackedVector2Array = []
-# Color is stored as bytes, holding either 1s or 0s. The value is used to deterine the red channel
+# Color is stored as ints, holding either 1s or 0s. The value is used to deterine the red channel
 # of the agents. 
-var agent_colors: PackedByteArray = []
+var agent_colors: PackedInt32Array = []
 
 # The above variable is used in this one to communicate to the GPU
 var agent_data_texture_rd: Texture2DRD = Texture2DRD.new()
