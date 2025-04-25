@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://kjlydwumhukn"
+path="res://.godot/imported/red-black-agents.glsl-3948a10e8307a2aa19cfb0b2b0337191.res"
+
+[deps]
+
+source_file="res://Preliminary Simulation/red-black-agents.glsl"
+dest_files=["res://.godot/imported/red-black-agents.glsl-3948a10e8307a2aa19cfb0b2b0337191.res"]
+
+[params]
+
