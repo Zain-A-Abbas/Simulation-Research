@@ -1,7 +1,7 @@
 [gd_scene load_steps=6 format=3 uid="uid://ca56nxvpxws5u"]
 
 [ext_resource type="Script" uid="uid://db1i01tuitgo1" path="res://Preliminary Simulation/2d.gd" id="1_5tdrk"]
-[ext_resource type="Texture2D" uid="uid://cfwjq5bhwhh8v" path="res://Preliminary Simulation/4x4.png" id="2_3owe0"]
+[ext_resource type="Texture2D" uid="uid://bo3ubthrgrjse" path="res://Preliminary Simulation/8x8.png" id="2_3owe0"]
 [ext_resource type="Shader" uid="uid://dotxh30jv7r2f" path="res://Preliminary Simulation/red_black_agents_shader.gdshader" id="2_hejfd"]
 
 [sub_resource type="Texture2DRD" id="Texture2DRD_hejfd"]

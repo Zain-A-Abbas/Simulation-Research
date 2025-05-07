@@ -2,20 +2,23 @@ extends Node2D
 
 @onready var agent_particles: GPUParticles2D = $AgentParticles
 
-const AGENT_COUNT = 32768#65536
+const AGENT_COUNT = 16384#65536
 
 # Am image is used to store the position and color of the awgents
-var IMAGE_SIZE = int(ceil(sqrt(AGENT_COUNT)))
+var IMAGE_SIZE = ceili(sqrt(AGENT_COUNT))
 var agent_data : Image
 var agent_data_texture_rd: Texture2DRD = Texture2DRD.new()
 
-const MAX_VELOCITY: float = 16.0
+const MAX_VELOCITY: float = 32.0
 var agent_positions: PackedVector2Array = []
 var agent_velocities: PackedVector2Array = []
 
 # Color is stored as ints, holding either 1s or 0s. The value is used to deterine the red channel
 # of the agents. 
 var agent_colors: PackedInt32Array = []
+
+# Radius of the individual agents
+var agent_radii: PackedFloat32Array = []
 
 # Equivalent to vulkan logical device
 var rendering_device: RenderingDevice
@@ -27,6 +30,7 @@ var uniform_set: RID
 var agent_position_buffer: RID
 var agent_velocity_buffer: RID
 var agent_color_buffer: RID
+var agent_radii_buffer: RID
 var agent_data_buffer: RID
 
 var param_buffer: RID
@@ -46,6 +50,7 @@ func generate_agents():
 		agent_positions.append(starting_position)
 		agent_velocities.append(Vector2(randf_range(-1.0, 1.0 * MAX_VELOCITY), randf_range(-1.0, 1.0 * MAX_VELOCITY)))
 		agent_colors.append(1 if randf() > 0.5 else 0)
+		agent_radii.append(randf_range(5.0, 12.0))
 
 func _process(delta: float) -> void:
 	get_window().title = "FPS: " + str(Engine.get_frames_per_second())
@@ -92,9 +97,12 @@ func setup_compute():
 	agent_color_buffer = generate_packed_array_buffer(agent_colors)
 	var agent_color_uniform: RDUniform = generate_compute_uniform(agent_color_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 2)
 	
+	agent_radii_buffer = generate_packed_array_buffer(agent_radii)
+	var agent_radii_uniform: RDUniform = generate_compute_uniform(agent_radii_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 3)
+	
 	var param_buffer_bytes = generate_parameter_buffer(0)
 	param_buffer = rendering_device.storage_buffer_create(param_buffer_bytes.size(), param_buffer_bytes)
-	param_uniform = generate_compute_uniform(param_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 3)
+	param_uniform = generate_compute_uniform(param_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 4)
 	
 	# Prepares the image data to bind it to the GPU
 	var texture_format: RDTextureFormat = RDTextureFormat.new()
@@ -106,12 +114,13 @@ func setup_compute():
 	var texture_view: RDTextureView = RDTextureView.new()
 	agent_data_buffer = rendering_device.texture_create(texture_format, texture_view, [agent_data.get_data()])
 	agent_data_texture_rd.texture_rd_rid = agent_data_buffer
-	var agent_data_buffer_uniform = generate_compute_uniform(agent_data_buffer, RenderingDevice.UNIFORM_TYPE_IMAGE, 4)
+	var agent_data_buffer_uniform = generate_compute_uniform(agent_data_buffer, RenderingDevice.UNIFORM_TYPE_IMAGE, 5)
 	
 	agent_bindings = [
 		agent_position_uniform,
 		agent_velocity_uniform,
 		agent_color_uniform,
+		agent_radii_uniform,
 		param_uniform,
 		agent_data_buffer_uniform
 	]
@@ -123,7 +132,7 @@ func generate_packed_array_buffer(data) -> RID:
 	var data_buffer: RID = rendering_device.storage_buffer_create(data_bytes.size(), data_bytes)
 	return data_buffer
 
-func generate_compute_uniform(buffer, type, binding) -> RDUniform:
+func generate_compute_uniform(buffer: RID, type: RenderingDevice.UniformType, binding: int) -> RDUniform:
 	var uniform: RDUniform = RDUniform.new()
 	uniform.uniform_type = type
 	uniform.binding = binding
@@ -135,6 +144,7 @@ func _exit_tree() -> void:
 
 func free_resources():
 	rendering_device.free_rid(agent_data_buffer)
+	rendering_device.free_rid(agent_radii_buffer)
 	rendering_device.free_rid(agent_color_buffer)
 	rendering_device.free_rid(agent_velocity_buffer)
 	rendering_device.free_rid(agent_position_buffer)

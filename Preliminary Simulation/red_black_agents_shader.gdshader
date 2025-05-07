@@ -1,6 +1,7 @@
 shader_type particles;
-uniform sampler2D agent_data;
 
+// Stores position, color, and radius
+uniform sampler2D agent_data;
 
 void start() {
 	// Called when a particle is spawned.
@@ -14,13 +15,17 @@ void process() {
 		int(float(INDEX) / float(pos_image_size.x))
 	);
 	
-	vec4 agent_pos_color = texelFetch(agent_data, texel_pos, 0);
-	//TRANSFORM[0].xy = vec2(1.0, 1.0);
-	//TRANSFORM[1].xy = vec2(1.0, 1.0);
-	TRANSFORM[3].xy = vec2(agent_pos_color.r, agent_pos_color.g);
+	// The r and g color channels store the agent's x/y positions
+	// The b color channel stores whether or not the agent is blue (confusing but red is easier on the eyes)
+	// The alpha channel stores the agent's radius
+	vec4 agent_params = texelFetch(agent_data, texel_pos, 0);
+	
+	TRANSFORM[0].x = agent_params.a / 4.0;
+	TRANSFORM[1].y = agent_params.a / 4.0;
+	TRANSFORM[3].xy = vec2(agent_params.r, agent_params.g);
 	
 	// The b channel is either 1 or 0, and when it's 1, use the non-black color
-	COLOR = vec4(agent_pos_color.b, 0.0, 0.0, 1.0);
+	COLOR = vec4(agent_params.b, 0.0, 0.0, 1.0);
 }
 
 

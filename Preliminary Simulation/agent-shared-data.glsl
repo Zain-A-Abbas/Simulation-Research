@@ -11,7 +11,11 @@ layout(set = 0, binding = 2, std430) restrict buffer Color {
     int data[];
 } agent_color;
 
-layout(set = 0, binding = 3, std430) restrict buffer Params {
+layout(set = 0, binding = 3, std430) restrict buffer Radius {
+    float data[];
+} agent_radius;
+
+layout(set = 0, binding = 4, std430) restrict buffer Params {
     float agent_count;
     float screen_width;
     float screen_height;
@@ -19,4 +23,4 @@ layout(set = 0, binding = 3, std430) restrict buffer Params {
     float delta;
 } params;
 
-layout(rgba32f, binding = 4) uniform image2D agent_data;
+layout(rgba32f, binding = 5) uniform image2D agent_data;
