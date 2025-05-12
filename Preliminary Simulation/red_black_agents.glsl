@@ -9,6 +9,11 @@ float random(uvec3 st) {
     return fract(sin(dot(st.xy ,vec2(12.9898,78.233))) * 43758.5453123);
 }
 
+void longRangeConstraint(int i, int j) {
+    float dist = distance(agent_pos.data[i], agent_pos.data[j]);
+    
+}
+
 void main() {
     int idx = int(gl_GlobalInvocationID.x);
     if (idx >= params.agent_count) {return;}
@@ -19,12 +24,13 @@ void main() {
 
     for (int i = 0; i < params.agent_count; i++) {
         if (i == idx) {continue;}
+        longRangeConstraint(idx, i);
 
         //if (abs(position.x - agent_pos.data[i].x) > 10) {continue;}
         //if (abs(position.y - agent_pos.data[i].y) > 10) {continue;}
 
         // [i] index is for the other agent in the pair
-        float normalDirX = position.x - agent_pos.data[i].x;
+        /*float normalDirX = position.x - agent_pos.data[i].x;
         float normalDirY = position.y - agent_pos.data[i].y;
         float dist = distance(position, agent_pos.data[i]);
         float constraint_distance = dist - agent_radius.data[idx] - agent_radius.data[i];
@@ -44,7 +50,7 @@ void main() {
             position.y -= 0.5 * constraint_distance * normalDirY;
             agent_pos.data[i].x += 0.5 * constraint_distance * normalDirX;
             agent_pos.data[i].y += 0.5 * constraint_distance * normalDirY;
-        }
+        }*/
 
     }
 
@@ -62,5 +68,5 @@ void main() {
         int(idx / params.image_size)
     );
 
-    imageStore(agent_data, pixel_coord, vec4(position.x, position.y, agent_color.data[idx], agent_radius.data[idx]));
+    imageStore(agent_data, pixel_coord, vec4(position.x, position.y, agent_color.data[idx], 1.0));
 }

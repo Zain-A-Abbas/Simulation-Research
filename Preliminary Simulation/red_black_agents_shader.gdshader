@@ -1,6 +1,6 @@
 shader_type particles;
 
-// Stores position, color, and radius
+// Stores position and color
 uniform sampler2D agent_data;
 
 void start() {
@@ -20,8 +20,8 @@ void process() {
 	// The alpha channel stores the agent's radius
 	vec4 agent_params = texelFetch(agent_data, texel_pos, 0);
 	
-	TRANSFORM[0].x = agent_params.a / 4.0;
-	TRANSFORM[1].y = agent_params.a / 4.0;
+	TRANSFORM[0].x = agent_params.a;
+	TRANSFORM[1].y = agent_params.a;
 	TRANSFORM[3].xy = vec2(agent_params.r, agent_params.g);
 	
 	// The b channel is either 1 or 0, and when it's 1, use the non-black color
