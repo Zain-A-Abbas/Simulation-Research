@@ -38,6 +38,9 @@ var agent_velocities: PackedVector2Array = []
 ## Color is stored as ints, holding either 1s or 0s. The value is used to deterine the red channel of the agents. 
 var agent_colors: PackedInt32Array = []
 
+## The inverted mass of each agent.
+var agent_inv_mass: PackedFloat32Array = []
+
 ## Radius of the individual agents. Only used when performing a simulation where agents have variable sizes.
 var agent_radii: PackedFloat32Array = []
 
@@ -92,10 +95,11 @@ func generate_agents():
 		agent_positions.append(starting_position)
 		agent_velocities.append(Vector2(randf_range(-1.0, 1.0 * MAX_VELOCITY), randf_range(-1.0, 1.0 * MAX_VELOCITY)))
 		agent_colors.append(1 if randf() > 0.5 else 0)
+		agent_inv_mass.append(randf_range(1.0, 2.0)) # Unsure as of yet if this range is correct. 
 		#agent_radii.append(RADIUS)
 
 ## Runs every frame.
-func _physics_process(delta: float) -> void:
+func _process(delta: float) -> void:
 	get_window().title = "FPS: " + str(Engine.get_frames_per_second())
 	RenderingServer.call_on_render_thread(gpu_process.bind(delta))
 
@@ -106,16 +110,23 @@ func gpu_process(delta: float):
 	run_compute(agent_pipeline)
 
 func generate_parameter_buffer(delta: float) -> PackedByteArray:
-	var params_buffer_bytes : PackedByteArray = PackedFloat32Array([
+	var floats: PackedFloat32Array = [
+		IMAGE_SIZE,
 		AGENT_COUNT,
 		get_viewport_rect().size.x,
 		get_viewport_rect().size.y,
-		IMAGE_SIZE,
 		RADIUS,
 		RADIUS * RADIUS,
 		delta,
-	]).to_byte_array()
-	return params_buffer_bytes
+		0.0 # Padding
+	]
+	
+	# append_array must be used when including an additional array in parameter data
+	var packed_data: PackedFloat32Array = []
+	packed_data.append_array(floats)
+	packed_data.append_array(agent_inv_mass)
+	
+	return packed_data.to_byte_array()
 
 ## The compute processing that is called every frame.
 func run_compute(pipeline: RID):

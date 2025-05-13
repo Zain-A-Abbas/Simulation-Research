@@ -14,14 +14,17 @@ layout(set = 0, binding = 2, std430) restrict buffer Color {
     float data[];
 } agent_radius;*/
 
+// Parameters that are exposed/decided on the CPU-side. Stores data typically not expected to be changed once it reaches the GPU.
 layout(set = 0, binding = 3, std430) restrict buffer Params {
-    float agent_count;
-    float screen_width;
-    float screen_height;
-    float image_size;
-    float radius;
-    float radius_squared;
-    float delta;
+    float image_size; // 0 (Counting byte alignment)
+    float agent_count; // 4
+    float screen_width; // 8
+    float screen_height; // 12
+    float radius; // 0
+    float radius_squared; // 4 
+    float delta; // 8
+    float _padding; // 12
+    float inv_mass[]; // 0
 } params;
 
 // The textures here are each used to pass the image back to the engine, as passing the shader data directly to a texture keeps everything
