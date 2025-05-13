@@ -2,7 +2,7 @@
 
 This repository contains various simulations using compute shaders in [Godot 4.4.1](https://godotengine.org/download/archive/4.4.1-stable/).
 
-# Red-Black Agents
+## Red-Black Agents
 
 Simulations involving pathfinding and collision avoidance with agents represented as red and black dots. The logic for this simulation is split across the following files:
 
