@@ -15,16 +15,26 @@ class_name RedBlackAgents
 ## The node that is used to draw the agents to screen.
 @onready var agent_particles: GPUParticles2D = $AgentParticles
 
+enum Scenarios {
+	DEFAULT,
+	OPPOSING_AGENTS
+}
+
+const SCENARIO: Scenarios = Scenarios.OPPOSING_AGENTS
+
 ## The number of agents.
-const AGENT_COUNT = 8192
+const AGENT_COUNT = 4096
 
 ## Upper limit of velocity. 
 const MAX_VELOCITY: float = 32.0
 ## Radius of each agent.
-const RADIUS: float = 8.0
+const RADIUS: float = 16.0
 
 ## Size of the textures that store the agent data.
-var IMAGE_SIZE = ceili(sqrt(AGENT_COUNT))
+var IMAGE_SIZE: int = 0
+
+## Set on run-time.
+var count: int = 0
 
 ## Texture 1 stores the position and color of each agent. RD (Rendering Device) texture allows mapping the image data to the Vulkan logical device.
 var agent_data_1_texture_rd: Texture2DRD
@@ -83,21 +93,42 @@ var param_uniform: RDUniform
 ## Runs when the scene is loaded.
 func _ready() -> void:
 	generate_agents()
-	agent_particles.amount = AGENT_COUNT
+	IMAGE_SIZE = ceili(sqrt(count))
+	agent_particles.amount = count
 	 
+	agent_particles.process_material.set_shader_parameter("radius", RADIUS)
+	
 	# Gets the texture resource stored on the shader.
 	agent_data_1_texture_rd = agent_particles.process_material.get_shader_parameter("agent_data")
 	RenderingServer.call_on_render_thread(setup_compute)
 
 ## Generates the initial information of all agents, such as starting position/velocity, as well as the color.
 func generate_agents():
-	for agent in AGENT_COUNT:
-		var starting_position: Vector2 = Vector2(randf() * get_viewport_rect().size.x, randf() * get_viewport_rect().size.y)
-		agent_positions.append(starting_position)
-		agent_velocities.append(Vector2(randf_range(-1.0, 1.0 * MAX_VELOCITY), randf_range(-1.0, 1.0 * MAX_VELOCITY)))
-		agent_colors.append(1 if randf() > 0.5 else 0)
-		agent_inv_mass.append(randf_range(1.0, 2.0)) # Unsure as of yet if this range is correct. 
-		#agent_radii.append(RADIUS)
+	if SCENARIO == Scenarios.DEFAULT:
+		count = AGENT_COUNT
+		for agent in AGENT_COUNT:
+			var starting_position: Vector2 = Vector2(randf() * get_viewport_rect().size.x, randf() * get_viewport_rect().size.y)
+			agent_positions.append(starting_position)
+			agent_velocities.append(Vector2(randf_range(-1.0, 1.0 * MAX_VELOCITY), randf_range(-1.0, 1.0 * MAX_VELOCITY)))
+			agent_colors.append(1 if randf() > 0.5 else 0)
+			agent_inv_mass.append(randf_range(1.0, 2.0)) # Unsure as of yet if this range is correct. 
+			#agent_radii.append(RADIUS)
+	
+	elif SCENARIO == Scenarios.OPPOSING_AGENTS:
+		count = 2
+		agent_positions.append_array([
+			Vector2(200, 200),
+			Vector2(500, 200)
+			])
+		agent_velocities.append_array([
+			Vector2(20, 0),
+			Vector2(-20, 0)
+			])
+		agent_colors.append_array([1, 0])
+		agent_inv_mass.append_array([
+			0.2,
+			0.2
+		])
 
 ## Runs every frame.
 func _process(delta: float) -> void:
@@ -113,7 +144,7 @@ func gpu_process(delta: float):
 func generate_parameter_buffer(delta: float) -> PackedByteArray:
 	var floats: PackedFloat32Array = [
 		IMAGE_SIZE,
-		AGENT_COUNT,
+		count,
 		get_viewport_rect().size.x,
 		get_viewport_rect().size.y,
 		RADIUS,
@@ -134,7 +165,7 @@ func run_compute(pipeline: RID):
 	var compute_list: int = rendering_device.compute_list_begin()
 	rendering_device.compute_list_bind_compute_pipeline(compute_list, pipeline)
 	rendering_device.compute_list_bind_uniform_set(compute_list, uniform_set, 0)
-	rendering_device.compute_list_dispatch(compute_list, ceil(AGENT_COUNT / 1024.), 1, 1)
+	rendering_device.compute_list_dispatch(compute_list, ceil(count / 1024.), 1, 1)
 	rendering_device.compute_list_end()
 
 ## Sets up the computer shader once.
