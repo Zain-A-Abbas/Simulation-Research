@@ -16,7 +16,8 @@ class_name RedBlackAgents
 @onready var agent_particles: GPUParticles2D = $AgentParticles
 
 ## The number of agents.
-const AGENT_COUNT = 16384
+const AGENT_COUNT = 8192
+
 ## Upper limit of velocity. 
 const MAX_VELOCITY: float = 32.0
 ## Radius of each agent.
