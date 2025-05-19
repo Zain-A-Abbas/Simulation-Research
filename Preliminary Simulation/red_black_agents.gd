@@ -20,7 +20,7 @@ enum Scenarios {
 	OPPOSING_AGENTS
 }
 
-const SCENARIO: Scenarios = Scenarios.OPPOSING_AGENTS
+const SCENARIO: Scenarios = Scenarios.DEFAULT
 
 ## The number of agents.
 const AGENT_COUNT = 4096
@@ -43,8 +43,12 @@ var agent_data_2_texture_rd: Texture2DRD
 
 ## Starting positions.
 var agent_positions: PackedVector2Array = []
-## Starting velocities.
+## The current velocities of agents.
 var agent_velocities: PackedVector2Array = []
+## Equal to starting velocities.
+var agent_preferred_velocities: PackedVector2Array = []
+## Corrections applied to agent positions each frame.
+var delta_corrections: PackedVector2Array = []
 
 ## Color is stored as ints, holding either 1s or 0s. The value is used to deterine the red channel of the agents. 
 var agent_colors: PackedInt32Array = []
@@ -74,6 +78,10 @@ var uniform_set: RID
 var agent_position_buffer: RID
 ## Buffer that stores the velocity of the agents.
 var agent_velocity_buffer: RID
+## Buffer that stores the preferred velocity of the agents.
+var agent_preferred_velocity_buffer: RID
+## Buffer that stores the delta corrections of the agents.
+var delta_corrections_buffer: RID
 ## Buffer that stores the color data of the agents.
 var agent_color_buffer: RID
 ## Buffer that stores the radii of the agents. Only used when performing a simulation where agents have variable sizes.
@@ -109,7 +117,10 @@ func generate_agents():
 		for agent in AGENT_COUNT:
 			var starting_position: Vector2 = Vector2(randf() * get_viewport_rect().size.x, randf() * get_viewport_rect().size.y)
 			agent_positions.append(starting_position)
-			agent_velocities.append(Vector2(randf_range(-1.0, 1.0 * MAX_VELOCITY), randf_range(-1.0, 1.0 * MAX_VELOCITY)))
+			var starting_vel: Vector2 = Vector2(randf_range(-1.0, 1.0 * MAX_VELOCITY), randf_range(-1.0, 1.0 * MAX_VELOCITY))
+			agent_velocities.append(starting_vel)
+			agent_preferred_velocities.append(starting_vel)
+			delta_corrections.append(Vector2.ZERO)
 			agent_colors.append(1 if randf() > 0.5 else 0)
 			agent_inv_mass.append(randf_range(1.0, 2.0)) # Unsure as of yet if this range is correct. 
 			#agent_radii.append(RADIUS)
@@ -123,6 +134,14 @@ func generate_agents():
 		agent_velocities.append_array([
 			Vector2(20, 0),
 			Vector2(-20, 0)
+			])
+		agent_preferred_velocities.append_array([
+			Vector2(20, 0),
+			Vector2(-20, 0)
+			])
+		delta_corrections.append_array([
+			Vector2.ZERO,
+			Vector2.ZERO
 			])
 		agent_colors.append_array([1, 0])
 		agent_inv_mass.append_array([
@@ -186,15 +205,21 @@ func setup_compute():
 	agent_velocity_buffer = generate_packed_array_buffer(agent_velocities)
 	var agent_velocity_uniform: RDUniform = generate_compute_uniform(agent_velocity_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 1)
 	
+	agent_preferred_velocity_buffer = generate_packed_array_buffer(agent_velocities)
+	var agent_preferred_velocity_uniform: RDUniform = generate_compute_uniform(agent_preferred_velocity_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 2)
+	
+	delta_corrections_buffer = generate_packed_array_buffer(agent_velocities)
+	var delta_corrections_uniform: RDUniform = generate_compute_uniform(delta_corrections_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 3)
+	
 	agent_color_buffer = generate_packed_array_buffer(agent_colors)
-	var agent_color_uniform: RDUniform = generate_compute_uniform(agent_color_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 2)
+	var agent_color_uniform: RDUniform = generate_compute_uniform(agent_color_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 4)
 	
 	#agent_radii_buffer = generate_packed_array_buffer(agent_radii)
 	#var agent_radii_uniform: RDUniform = generate_compute_uniform(agent_radii_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 3)
 	
 	var param_buffer_bytes = generate_parameter_buffer(0)
 	param_buffer = rendering_device.storage_buffer_create(param_buffer_bytes.size(), param_buffer_bytes)
-	param_uniform = generate_compute_uniform(param_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 3)
+	param_uniform = generate_compute_uniform(param_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 5)
 	
 	# Prepares the image data to bind it to the GPU
 	var texture_format: RDTextureFormat = RDTextureFormat.new()
@@ -208,11 +233,13 @@ func setup_compute():
 	var texture_view: RDTextureView = RDTextureView.new()
 	agent_data_1_buffer = rendering_device.texture_create(texture_format, texture_view, [])
 	agent_data_1_texture_rd.texture_rd_rid = agent_data_1_buffer
-	var agent_data_1_buffer_uniform = generate_compute_uniform(agent_data_1_buffer, RenderingDevice.UNIFORM_TYPE_IMAGE, 4)
+	var agent_data_1_buffer_uniform = generate_compute_uniform(agent_data_1_buffer, RenderingDevice.UNIFORM_TYPE_IMAGE, 6)
 	
 	agent_bindings = [
 		agent_position_uniform,
 		agent_velocity_uniform,
+		agent_preferred_velocity_uniform,
+		delta_corrections_uniform,
 		agent_color_uniform,
 		#agent_radii_uniform,
 		param_uniform,

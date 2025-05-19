@@ -11,16 +11,24 @@ layout(set = 0, binding = 1, std430) restrict buffer Velocity {
     vec2 data[];
 } agent_vel;
 
-layout(set = 0, binding = 2, std430) restrict buffer Color {
+layout(set = 0, binding = 2, std430) restrict buffer PreferredVelocity {
+    vec2 data[];
+} agent_pref_vel;
+
+layout(set = 0, binding = 3, std430) restrict buffer DeltaCorrections {
+    vec2 data[];
+} delta_corrections;
+
+layout(set = 0, binding = 4, std430) restrict buffer Color {
     int data[];
 } agent_color;
 
-/*layout(set = 0, binding = 3, std430) restrict buffer Radius {
+/*layout(set = 0, binding = 5, std430) restrict buffer Radius {
     float data[];
 } agent_radius;*/
 
 // Parameters that are exposed/decided on the CPU-side. Stores data typically not expected to be changed once it reaches the GPU.
-layout(set = 0, binding = 3, std430) restrict buffer Params {
+layout(set = 0, binding = 5, std430) restrict buffer Params {
     float image_size; // 0 (Counting byte alignment)
     float agent_count; // 4
     float screen_width; // 8
@@ -34,7 +42,7 @@ layout(set = 0, binding = 3, std430) restrict buffer Params {
 
 // The textures here are each used to pass the image back to the engine, as passing the shader data directly to a texture keeps everything
 // on the GPU without having to pass it back over to CPU memory
-layout(rgba32f, binding = 4) uniform image2D agent_data;
+layout(rgba32f, binding = 6) uniform image2D agent_data;
 
 const float INV_MASS = 0.01625;
 const float EPSILON = 0.0001;
@@ -43,6 +51,7 @@ const float C_TAO_0 = 20.0;
 const float dv_i = 1.0;
 const float C_LONG_RANGE_STIFF = 0.02;
 const float MAX_DELTA = 0.9;
+
 
 float random(uvec3 st) {
     return fract(sin(dot(st.xy ,vec2(12.9898,78.233))) * 43758.5453123);
@@ -131,35 +140,10 @@ void main() {
         //agent_pos.data[idx].x += 10.0;
         //agent_pos.data[idx].y += 10.0;
 
+
     for (int i = 0; i < params.agent_count; i++) {
         if (i == idx) {continue;}
         longRangeConstraint(idx, i);
-
-
-
-        // [i] index is for the other agent in the pair
-        /*{
-        float normalDirX = position.x - agent_pos.data[i].x;
-        float normalDirY = position.y - agent_pos.data[i].y;
-        float dist = distance(position, agent_pos.data[i]);
-        float constraint_distance = dist - agent_radius.data[idx] - agent_radius.data[i];
-        if (constraint_distance < 0) {
-
-            if (dist < 0.001) {
-                dist = 1.0;
-                float rand_dir = random(gl_GlobalInvocationID);
-                normalDirX = cos(rand_dir);
-                normalDirY = sin(rand_dir);
-            }
-
-            normalDirX /= dist;
-            normalDirY /= dist;
-
-            position.x -= 0.5 * constraint_distance * normalDirX;
-            position.y -= 0.5 * constraint_distance * normalDirY;
-            agent_pos.data[i].x += 0.5 * constraint_distance * normalDirX;
-            agent_pos.data[i].y += 0.5 * constraint_distance * normalDirY;
-        }*/
     }
 
 
