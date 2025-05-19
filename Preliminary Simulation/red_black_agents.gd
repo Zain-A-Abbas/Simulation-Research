@@ -47,8 +47,8 @@ var agent_positions: PackedVector2Array = []
 var agent_velocities: PackedVector2Array = []
 ## Equal to starting velocities.
 var agent_preferred_velocities: PackedVector2Array = []
-## Corrections applied to agent positions each frame.
-var delta_corrections: PackedVector2Array = []
+## Corrections applied to agent positions each frame. z index is used as a counter
+var delta_corrections: PackedVector4Array = []
 
 ## Color is stored as ints, holding either 1s or 0s. The value is used to deterine the red channel of the agents. 
 var agent_colors: PackedInt32Array = []
@@ -120,7 +120,7 @@ func generate_agents():
 			var starting_vel: Vector2 = Vector2(randf_range(-1.0, 1.0 * MAX_VELOCITY), randf_range(-1.0, 1.0 * MAX_VELOCITY))
 			agent_velocities.append(starting_vel)
 			agent_preferred_velocities.append(starting_vel)
-			delta_corrections.append(Vector2.ZERO)
+			delta_corrections.append(Vector4.ZERO)
 			agent_colors.append(1 if randf() > 0.5 else 0)
 			agent_inv_mass.append(randf_range(1.0, 2.0)) # Unsure as of yet if this range is correct. 
 			#agent_radii.append(RADIUS)

@@ -125,17 +125,17 @@ void longRangeConstraint(int i, int j) {
             MAX_DELTA
             ); 
 
-        /*delta_corrections.data[i].x += delta_correction_i.x;
+        delta_corrections.data[i].x += delta_correction_i.x;
         delta_corrections.data[j].y += delta_correction_j.y;
         delta_corrections.data[i].z += 1.0;
-        delta_corrections.data[i].y += delta_correction_i.y;
+        /*delta_corrections.data[i].y += delta_correction_i.y;
         delta_corrections.data[j].x += delta_correction_j.x;
         delta_corrections.data[j].z += 1.0;*/
 
-        agent_pos.data[i].x += delta_correction_i.x;
+        /*agent_pos.data[i].x += delta_correction_i.x;
         agent_pos.data[i].y += delta_correction_i.y;
         agent_pos.data[j].x += delta_correction_j.x;
-        agent_pos.data[j].y += delta_correction_j.y;
+        agent_pos.data[j].y += delta_correction_j.y;*/
     }
 }
 
@@ -153,6 +153,11 @@ void main() {
     for (int i = 0; i < params.agent_count; i++) {
         if (i == idx) {continue;}
         longRangeConstraint(idx, i);
+    }
+
+    if (delta_corrections.data[idx].z > 0.0) {
+        move.x += delta_corrections.data[idx].x / delta_corrections.data[idx].z;
+        move.y += delta_corrections.data[idx].y / delta_corrections.data[idx].z;
     }
 
     agent_pos.data[idx] += move;

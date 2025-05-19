@@ -1,0 +1,14 @@
+[remap]
+
+importer="glsl"
+type="RDShaderFile"
+uid="uid://bfahvj40dq5ua"
+path="res://.godot/imported/red_black_agents_with_delta_corrections.glsl-831252428c6c1e200e6099b5ed7e9975.res"
+
+[deps]
+
+source_file="res://Preliminary Simulation/red_black_agents_with_delta_corrections.glsl"
+dest_files=["res://.godot/imported/red_black_agents_with_delta_corrections.glsl-831252428c6c1e200e6099b5ed7e9975.res"]
+
+[params]
+
