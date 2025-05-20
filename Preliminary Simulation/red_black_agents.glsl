@@ -37,7 +37,7 @@ layout(set = 0, binding = 5, std430) restrict buffer Params {
     float radius; // 0
     float radius_squared; // 4 
     float delta; // 8
-    float _padding; // 12
+    float stage; // 12
     float inv_mass[]; // 0
 } params;
 
@@ -139,21 +139,20 @@ void longRangeConstraint(int i, int j) {
     }
 }
 
-void main() {
+void correctionsStage() {
     int idx = int(gl_GlobalInvocationID.x);
     if (idx >= params.agent_count) {return;}
-
     delta_corrections.data[idx] = vec4(0.0);
-
-    vec2 move = agent_vel.data[idx] * params.delta;
-        //agent_pos.data[idx].x += 10.0;
-        //agent_pos.data[idx].y += 10.0;
-
-
     for (int i = 0; i < params.agent_count; i++) {
         if (i == idx) {continue;}
         longRangeConstraint(idx, i);
     }
+}
+
+void moveStage() {
+    int idx = int(gl_GlobalInvocationID.x);
+    if (idx >= params.agent_count) {return;}
+    vec2 move = agent_vel.data[idx] * params.delta;
 
     agent_pos.data[idx] += move;
 
@@ -169,4 +168,15 @@ void main() {
     );
 
     imageStore(agent_data, pixel_coord, vec4(agent_pos.data[idx].x, agent_pos.data[idx].y, agent_color.data[idx], 1.0));
+}
+
+void main() {
+
+    if (params.stage == 0.0) {
+        correctionsStage();
+    }
+    else if (params.stage == 1.0) {
+        moveStage();
+    }
+
 }

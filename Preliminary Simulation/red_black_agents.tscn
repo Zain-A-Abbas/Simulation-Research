@@ -1,4 +1,4 @@
-[gd_scene load_steps=6 format=3 uid="uid://ca56nxvpxws5u"]
+[gd_scene load_steps=7 format=3 uid="uid://ca56nxvpxws5u"]
 
 [ext_resource type="Script" uid="uid://db1i01tuitgo1" path="res://Preliminary Simulation/red_black_agents.gd" id="1_8sook"]
 [ext_resource type="Texture2D" uid="uid://b37l6ubs03hr7" path="res://Preliminary Simulation/32x32.png" id="2_8sook"]
@@ -11,6 +11,13 @@ shader = ExtResource("3_a4fjh")
 shader_parameter/agent_data = SubResource("Texture2DRD_hejfd")
 shader_parameter/radius = 0.0
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_8sook"]
+content_margin_left = 8.0
+content_margin_top = 8.0
+content_margin_right = 8.0
+content_margin_bottom = 8.0
+bg_color = Color(0, 0, 0, 0.168627)
+
 [node name="Node2D" type="Node2D"]
 script = ExtResource("1_8sook")
 
@@ -20,3 +27,49 @@ texture = ExtResource("2_8sook")
 lifetime = 10.0
 explosiveness = 1.0
 process_material = SubResource("ShaderMaterial_3owe0")
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="MarginContainer" type="MarginContainer" parent="CanvasLayer"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 32
+theme_override_constants/margin_top = 32
+theme_override_constants/margin_right = 32
+theme_override_constants/margin_bottom = 32
+metadata/_edit_lock_ = true
+
+[node name="PanelContainer" type="PanelContainer" parent="CanvasLayer/MarginContainer"]
+custom_minimum_size = Vector2(128, 0)
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+theme_override_styles/panel = SubResource("StyleBoxFlat_8sook")
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CanvasLayer/MarginContainer/PanelContainer"]
+layout_mode = 2
+
+[node name="HBoxContainer2" type="HBoxContainer" parent="CanvasLayer/MarginContainer/PanelContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="TimePassedLabel" type="Label" parent="CanvasLayer/MarginContainer/PanelContainer/VBoxContainer/HBoxContainer2"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 8
+theme_override_font_sizes/font_size = 20
+text = "00:00:00.000"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="CanvasLayer/MarginContainer/PanelContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+size_flags_vertical = 0
+
+[node name="PauseButton" type="Button" parent="CanvasLayer/MarginContainer/PanelContainer/VBoxContainer/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 24
+text = "Pause"

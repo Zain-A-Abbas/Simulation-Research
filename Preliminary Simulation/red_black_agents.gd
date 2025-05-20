@@ -14,13 +14,20 @@ class_name RedBlackAgents
 
 ## The node that is used to draw the agents to screen.
 @onready var agent_particles: GPUParticles2D = $AgentParticles
+@onready var pause_button: Button = %PauseButton
+@onready var time_passed_label: Label = %TimePassedLabel
 
 enum Scenarios {
-	DEFAULT,
+	LONG_RANGE_CONSTRAINT,
 	OPPOSING_AGENTS
 }
 
-const SCENARIO: Scenarios = Scenarios.DEFAULT
+const SCENARIO: Scenarios = Scenarios.LONG_RANGE_CONSTRAINT
+
+# If not set to 0, then all agents will spawn in the same locations with the same velocities
+# (assuming all other variables are identical)
+# DOES NOT CURRENTLY WORK WITH LONG RANGE CONSTAINT
+const SEED: int = 0
 
 ## The number of agents.
 const AGENT_COUNT = 4096
@@ -98,8 +105,28 @@ var param_buffer: RID
 ## Uniform for the previous buffer.
 var param_uniform: RDUniform
 
+var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+
+#region Engine Parameters (Parameters and settings controlled during run-time)
+
+var paused: bool = false
+var start_time: int = 0
+var time_passed: int = 0
+
+#endregion
+
 ## Runs when the scene is loaded.
 func _ready() -> void:
+	if SEED == 0:
+		rng.randomize()
+	else:
+		rng.seed = SEED
+	
+	start_time = Time.get_ticks_msec()
+	
+	# Connect GUI signals to functions
+	pause_button.pressed.connect(pause)
+	
 	generate_agents()
 	IMAGE_SIZE = ceili(sqrt(count))
 	agent_particles.amount = count
@@ -110,19 +137,22 @@ func _ready() -> void:
 	agent_data_1_texture_rd = agent_particles.process_material.get_shader_parameter("agent_data")
 	RenderingServer.call_on_render_thread(setup_compute)
 
+func pause():
+	paused = !paused
+
 ## Generates the initial information of all agents, such as starting position/velocity, as well as the color.
 func generate_agents():
-	if SCENARIO == Scenarios.DEFAULT:
+	if SCENARIO == Scenarios.LONG_RANGE_CONSTRAINT:
 		count = AGENT_COUNT
 		for agent in AGENT_COUNT:
-			var starting_position: Vector2 = Vector2(randf() * get_viewport_rect().size.x, randf() * get_viewport_rect().size.y)
+			var starting_position: Vector2 = Vector2(rng.randf() * get_viewport_rect().size.x, rng.randf() * get_viewport_rect().size.y)
 			agent_positions.append(starting_position)
-			var starting_vel: Vector2 = Vector2(randf_range(-1.0, 1.0 * MAX_VELOCITY), randf_range(-1.0, 1.0 * MAX_VELOCITY))
+			var starting_vel: Vector2 = Vector2(rng.randf_range(-1.0, 1.0 * MAX_VELOCITY), rng.randf_range(-1.0, 1.0 * MAX_VELOCITY))
 			agent_velocities.append(starting_vel)
 			agent_preferred_velocities.append(starting_vel)
 			delta_corrections.append(Vector4.ZERO)
-			agent_colors.append(1 if randf() > 0.5 else 0)
-			agent_inv_mass.append(randf_range(1.0, 2.0)) # Unsure as of yet if this range is correct. 
+			agent_colors.append(1 if rng.randf() > 0.5 else 0)
+			agent_inv_mass.append(rng.randf_range(1.0, 2.0)) # Unsure as of yet if this range is correct. 
 			#agent_radii.append(RADIUS)
 	
 	elif SCENARIO == Scenarios.OPPOSING_AGENTS:
@@ -151,16 +181,37 @@ func generate_agents():
 
 ## Runs every frame.
 func _process(delta: float) -> void:
+	if paused:
+		return
+	
+	time_passed = Time.get_ticks_msec() - start_time
+	var hours: int = time_passed / 360000
+	var minutes: int = (time_passed % 360000) / 60000
+	var seconds: int = (time_passed % 60000) / 1000
+	var ms: int = time_passed % 1000
+	time_passed_label.text = "%s:%s:%s.%s" % [hours, minutes, seconds, ms]
+	
+	
+	var finalDelta: float = delta * float(!paused)
 	get_window().title = "FPS: " + str(Engine.get_frames_per_second())
-	RenderingServer.call_on_render_thread(gpu_process.bind(delta))
+	RenderingServer.call_on_render_thread(gpu_process.bind(finalDelta))
 
 ## Processing behavior that has to run on the RenderingServer object.
 func gpu_process(delta: float):
-	var param_buffer_bytes = generate_parameter_buffer(delta)
+	# First pass
+	var param_buffer_bytes: PackedByteArray = generate_parameter_buffer(delta, 0)
 	rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
 	run_compute(agent_pipeline)
+	
+	RenderingServer.force_sync() # May not be necessary
+	
+	# Second pass
+	param_buffer_bytes = generate_parameter_buffer(delta, 1)
+	rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
+	run_compute(agent_pipeline)
+	
 
-func generate_parameter_buffer(delta: float) -> PackedByteArray:
+func generate_parameter_buffer(delta: float, stage: float) -> PackedByteArray:
 	var floats: PackedFloat32Array = [
 		IMAGE_SIZE,
 		count,
@@ -169,7 +220,7 @@ func generate_parameter_buffer(delta: float) -> PackedByteArray:
 		RADIUS,
 		RADIUS * RADIUS,
 		delta,
-		0.0 # Padding
+		stage # "Stage" variable
 	]
 	
 	# append_array must be used when including an additional array in parameter data
@@ -217,7 +268,7 @@ func setup_compute():
 	#agent_radii_buffer = generate_packed_array_buffer(agent_radii)
 	#var agent_radii_uniform: RDUniform = generate_compute_uniform(agent_radii_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 3)
 	
-	var param_buffer_bytes = generate_parameter_buffer(0)
+	var param_buffer_bytes = generate_parameter_buffer(0, 0)
 	param_buffer = rendering_device.storage_buffer_create(param_buffer_bytes.size(), param_buffer_bytes)
 	param_uniform = generate_compute_uniform(param_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 5)
 	
@@ -271,6 +322,8 @@ func free_resources():
 	#rendering_device.free_rid(agent_radii_buffer)
 	rendering_device.free_rid(agent_color_buffer)
 	rendering_device.free_rid(agent_velocity_buffer)
+	rendering_device.free_rid(agent_preferred_velocity_buffer)
+	rendering_device.free_rid(delta_corrections_buffer)
 	rendering_device.free_rid(agent_position_buffer)
 	rendering_device.free_rid(uniform_set)
 	rendering_device.free_rid(agent_pipeline)
