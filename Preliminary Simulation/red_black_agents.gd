@@ -16,29 +16,38 @@ class_name RedBlackAgents
 @onready var agent_particles: GPUParticles2D = $AgentParticles
 @onready var pause_button: Button = %PauseButton
 @onready var time_passed_label: Label = %TimePassedLabel
+@onready var fps_label: Label = %FPSLabel
 
+## Enum storing all possible scenarios that can be simulated.
 enum Scenarios {
 	LONG_RANGE_CONSTRAINT,
 	OPPOSING_AGENTS
 }
 
-const SCENARIO: Scenarios = Scenarios.LONG_RANGE_CONSTRAINT
+const RED_BLACK_AGENTS_CONFIG_FILE: String = "user://red_black_agents_config.json"
 
 # If not set to 0, then all agents will spawn in the same locations with the same velocities
 # (assuming all other variables are identical)
 # DOES NOT CURRENTLY WORK WITH LONG RANGE CONSTAINT
 const SEED: int = 0
 
+#region The follow parameters are set based on the selected parameters in the Simulation Interface
+## The currently chosen scenario
+var scenario: Scenarios = Scenarios.LONG_RANGE_CONSTRAINT
+
 ## The number of agents.
-const AGENT_COUNT = 512
+var agent_count = 512
 
 ## Upper limit of velocity. 
-const MAX_VELOCITY: float = 32.0
+var max_velocity: float = 32.0
+
 ## Radius of each agent.
-const RADIUS: float = 16.0
+var radius: float = 16.0
+
+#endregion
 
 ## Size of the textures that store the agent data.
-var IMAGE_SIZE: int = 0
+var image_size: int = 0
 
 ## Set on run-time.
 var count: int = 0
@@ -107,6 +116,8 @@ var param_uniform: RDUniform
 
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
+var parameters: Dictionary = {}
+
 #region Engine Parameters (Parameters and settings controlled during run-time)
 
 var paused: bool = false
@@ -117,6 +128,7 @@ var time_passed: int = 0
 
 ## Runs when the scene is loaded.
 func _ready() -> void:
+	import_config()
 	if SEED == 0:
 		rng.randomize()
 	else:
@@ -128,14 +140,29 @@ func _ready() -> void:
 	pause_button.pressed.connect(pause)
 	
 	generate_agents()
-	IMAGE_SIZE = ceili(sqrt(count))
-	agent_particles.amount = count
-	 
-	agent_particles.process_material.set_shader_parameter("radius", RADIUS)
+	image_size = ceili(sqrt(count))
+	if parameters["disable_rendering"]:
+		agent_particles.amount = 0
+	else:
+		agent_particles.amount = count
+	
+	agent_particles.process_material.set_shader_parameter("radius", radius)
 	
 	# Gets the texture resource stored on the shader.
 	agent_data_1_texture_rd = agent_particles.process_material.get_shader_parameter("agent_data")
 	RenderingServer.call_on_render_thread(setup_compute)
+
+func import_config():
+	var config_file: FileAccess = FileAccess.open(RED_BLACK_AGENTS_CONFIG_FILE, FileAccess.READ)
+	var config_json: JSON = JSON.new()
+	config_json.parse(config_file.get_as_text())
+	parameters = config_json.data
+	agent_count = parameters["agent_count"]
+	max_velocity = parameters["max_velocity"]
+	radius = parameters["radius"]
+	scenario = Scenarios[parameters["scenario"]]
+	get_tree().root.size = (Vector2i(parameters["window_x"], parameters["window_y"]))
+	
 
 func pause():
 	paused = !paused
@@ -149,20 +176,20 @@ func generate_agents():
 	agent_colors.clear()
 	agent_inv_mass.clear()
 	
-	if SCENARIO == Scenarios.LONG_RANGE_CONSTRAINT:
-		count = AGENT_COUNT
-		for agent in AGENT_COUNT:
+	if scenario == Scenarios.LONG_RANGE_CONSTRAINT:
+		count = agent_count
+		for agent in agent_count:
 			var starting_position: Vector2 = Vector2(rng.randf() * get_viewport_rect().size.x, rng.randf() * get_viewport_rect().size.y)
 			agent_positions.append(starting_position)
-			var starting_vel: Vector2 = Vector2(rng.randf_range(-1.0, 1.0) * MAX_VELOCITY, rng.randf_range(-1.0, 1.0) * MAX_VELOCITY)
+			var starting_vel: Vector2 = Vector2(rng.randf_range(-1.0, 1.0) * max_velocity, rng.randf_range(-1.0, 1.0) * max_velocity)
 			agent_velocities.append(starting_vel)
 			agent_preferred_velocities.append(starting_vel)
 			delta_corrections.append(Vector4.ZERO)
 			agent_colors.append(1 if rng.randf() > 0.5 else 0)
 			agent_inv_mass.append(rng.randf_range(0.2, 0.4)) # Unsure as of yet if this range is correct. 
-			#agent_radii.append(RADIUS)
+			#agent_radii.append(radius)
 	
-	elif SCENARIO == Scenarios.OPPOSING_AGENTS:
+	elif scenario == Scenarios.OPPOSING_AGENTS:
 		count = 2
 		agent_positions.append_array([
 			Vector2(200, 200),
@@ -197,10 +224,9 @@ func _process(delta: float) -> void:
 	var seconds: int = (time_passed % 60000) / 1000
 	var ms: int = time_passed % 1000
 	time_passed_label.text = "%02d:%02d:%02d.%03d" % [hours, minutes, seconds, ms]
-	
+	fps_label.text = "FPS: " + str(Engine.get_frames_per_second())
 	
 	var finalDelta: float = delta * float(!paused)
-	get_window().title = "FPS: " + str(Engine.get_frames_per_second())
 	RenderingServer.call_on_render_thread(gpu_process.bind(finalDelta))
 
 ## Processing behavior that has to run on the RenderingServer object.
@@ -219,12 +245,12 @@ func gpu_process(delta: float):
 
 func generate_parameter_buffer(delta: float, stage: float) -> PackedByteArray:
 	var floats: PackedFloat32Array = [
-		IMAGE_SIZE,
+		image_size,
 		count,
 		get_viewport_rect().size.x,
 		get_viewport_rect().size.y,
-		RADIUS,
-		RADIUS * RADIUS,
+		radius,
+		radius * radius * 1.05 * 1.05, #radius_squared
 		delta,
 		stage # "Stage" variable
 	]
@@ -280,8 +306,8 @@ func setup_compute():
 	
 	# Prepares the image data to bind it to the GPU
 	var texture_format: RDTextureFormat = RDTextureFormat.new()
-	texture_format.width = IMAGE_SIZE
-	texture_format.height = IMAGE_SIZE
+	texture_format.width = image_size
+	texture_format.height = image_size
 	
 	# Can be changed to a 64-bit format if the extra precision is ever needed.
 	texture_format.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SFLOAT 
