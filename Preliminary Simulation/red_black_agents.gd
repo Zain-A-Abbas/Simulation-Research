@@ -30,7 +30,7 @@ const SCENARIO: Scenarios = Scenarios.LONG_RANGE_CONSTRAINT
 const SEED: int = 0
 
 ## The number of agents.
-const AGENT_COUNT = 4096
+const AGENT_COUNT = 512
 
 ## Upper limit of velocity. 
 const MAX_VELOCITY: float = 32.0
@@ -142,17 +142,24 @@ func pause():
 
 ## Generates the initial information of all agents, such as starting position/velocity, as well as the color.
 func generate_agents():
+	agent_positions.clear()
+	agent_velocities.clear()
+	agent_preferred_velocities.clear()
+	delta_corrections.clear()
+	agent_colors.clear()
+	agent_inv_mass.clear()
+	
 	if SCENARIO == Scenarios.LONG_RANGE_CONSTRAINT:
 		count = AGENT_COUNT
 		for agent in AGENT_COUNT:
 			var starting_position: Vector2 = Vector2(rng.randf() * get_viewport_rect().size.x, rng.randf() * get_viewport_rect().size.y)
 			agent_positions.append(starting_position)
-			var starting_vel: Vector2 = Vector2(rng.randf_range(-1.0, 1.0 * MAX_VELOCITY), rng.randf_range(-1.0, 1.0 * MAX_VELOCITY))
+			var starting_vel: Vector2 = Vector2(rng.randf_range(-1.0, 1.0) * MAX_VELOCITY, rng.randf_range(-1.0, 1.0) * MAX_VELOCITY)
 			agent_velocities.append(starting_vel)
 			agent_preferred_velocities.append(starting_vel)
 			delta_corrections.append(Vector4.ZERO)
 			agent_colors.append(1 if rng.randf() > 0.5 else 0)
-			agent_inv_mass.append(rng.randf_range(1.0, 2.0)) # Unsure as of yet if this range is correct. 
+			agent_inv_mass.append(rng.randf_range(0.2, 0.4)) # Unsure as of yet if this range is correct. 
 			#agent_radii.append(RADIUS)
 	
 	elif SCENARIO == Scenarios.OPPOSING_AGENTS:
@@ -189,7 +196,7 @@ func _process(delta: float) -> void:
 	var minutes: int = (time_passed % 360000) / 60000
 	var seconds: int = (time_passed % 60000) / 1000
 	var ms: int = time_passed % 1000
-	time_passed_label.text = "%s:%s:%s.%s" % [hours, minutes, seconds, ms]
+	time_passed_label.text = "%02d:%02d:%02d.%03d" % [hours, minutes, seconds, ms]
 	
 	
 	var finalDelta: float = delta * float(!paused)
@@ -209,7 +216,6 @@ func gpu_process(delta: float):
 	param_buffer_bytes = generate_parameter_buffer(delta, 1)
 	rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
 	run_compute(agent_pipeline)
-	
 
 func generate_parameter_buffer(delta: float, stage: float) -> PackedByteArray:
 	var floats: PackedFloat32Array = [
@@ -256,10 +262,10 @@ func setup_compute():
 	agent_velocity_buffer = generate_packed_array_buffer(agent_velocities)
 	var agent_velocity_uniform: RDUniform = generate_compute_uniform(agent_velocity_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 1)
 	
-	agent_preferred_velocity_buffer = generate_packed_array_buffer(agent_velocities)
+	agent_preferred_velocity_buffer = generate_packed_array_buffer(agent_preferred_velocities)
 	var agent_preferred_velocity_uniform: RDUniform = generate_compute_uniform(agent_preferred_velocity_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 2)
 	
-	delta_corrections_buffer = generate_packed_array_buffer(agent_velocities)
+	delta_corrections_buffer = generate_packed_array_buffer(delta_corrections)
 	var delta_corrections_uniform: RDUniform = generate_compute_uniform(delta_corrections_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 3)
 	
 	agent_color_buffer = generate_packed_array_buffer(agent_colors)
