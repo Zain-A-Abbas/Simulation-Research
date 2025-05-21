@@ -50,10 +50,10 @@ const float EPSILON = 0.0001;
 const float C_TAO_MAX = 20.0;
 const float C_TAO_0 = 20.0;
 const float dv_i = 1.0;
-const float C_LONG_RANGE_STIFF = 0.02;
-const float MAX_DELTA = 0.9;
-
-
+const float C_LONG_RANGE_STIFF = 0.32;
+const float MAX_DELTA = 110.9;
+const float MAX_SPEED = 10.0;
+const float ksi = 0.1;
 float random(uvec3 st) {
     return fract(sin(dot(st.xy ,vec2(12.9898,78.233))) * 43758.5453123);
 }
@@ -126,11 +126,12 @@ void longRangeConstraint(int i, int j) {
             ); 
 
         delta_corrections.data[i].x += delta_correction_i.x;
-        delta_corrections.data[j].y += delta_correction_j.y;
+        delta_corrections.data[i].y += delta_correction_i.y;
         delta_corrections.data[i].z += 1.0;
-        /*delta_corrections.data[i].y += delta_correction_i.y;
+
         delta_corrections.data[j].x += delta_correction_j.x;
-        delta_corrections.data[j].z += 1.0;*/
+        delta_corrections.data[j].y += delta_correction_j.y;
+        delta_corrections.data[j].z += 1.0;
 
         /*agent_pos.data[i].x += delta_correction_i.x;
         agent_pos.data[i].y += delta_correction_i.y;
@@ -161,6 +162,8 @@ void moveStage() {
     }
 
     agent_pos.data[idx] += move;
+    agent_vel.data[idx] = move / params.delta;
+    agent_vel.data[idx] = clamp2D(agent_vel.data[idx].x, agent_vel.data[idx].y, MAX_SPEED);
 
     if (agent_pos.data[idx].x > params.screen_width) {agent_pos.data[idx].x -= params.screen_width;}
     if (agent_pos.data[idx].y > params.screen_height) {agent_pos.data[idx].y -= params.screen_height;}
@@ -173,6 +176,7 @@ void moveStage() {
         int(idx / params.image_size)
     );
 
+    agent_vel.data[idx] = ksi * agent_pref_vel.data[idx]  + (1.0-ksi) * agent_vel.data[idx];
     imageStore(agent_data, pixel_coord, vec4(agent_pos.data[idx].x, agent_pos.data[idx].y, agent_color.data[idx], 1.0));
 }
 
