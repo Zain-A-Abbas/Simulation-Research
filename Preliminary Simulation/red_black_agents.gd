@@ -14,9 +14,10 @@ class_name RedBlackAgents
 
 ## The node that is used to draw the agents to screen.
 @onready var agent_particles: GPUParticles2D = $AgentParticles
-@onready var pause_button: Button = %PauseButton
 @onready var time_passed_label: Label = %TimePassedLabel
 @onready var fps_label: Label = %FPSLabel
+@onready var pause_button: Button = %PauseButton
+@onready var save_button: Button = %SaveButton
 
 ## Enum storing all possible scenarios that can be simulated.
 enum Scenarios {
@@ -126,6 +127,11 @@ var time_passed: int = 0
 
 #endregion
 
+## Stores the values saved every frame of execution
+var simulation_file: SimulationFile = SimulationFile.new()
+var sim_file: FileAccess
+var frame: int = 0
+
 ## Runs when the scene is loaded.
 func _ready() -> void:
 	import_config()
@@ -138,11 +144,12 @@ func _ready() -> void:
 	
 	# Connect GUI signals to functions
 	pause_button.pressed.connect(pause)
+	save_button.pressed.connect(save)
 	
 	generate_agents()
 	image_size = ceili(sqrt(count))
 	if parameters["disable_rendering"]:
-		agent_particles.amount = 0
+		agent_particles.emitting = false
 	else:
 		agent_particles.amount = count
 	
@@ -151,6 +158,7 @@ func _ready() -> void:
 	# Gets the texture resource stored on the shader.
 	agent_data_1_texture_rd = agent_particles.process_material.get_shader_parameter("agent_data")
 	RenderingServer.call_on_render_thread(setup_compute)
+
 
 func import_config():
 	var config_file: FileAccess = FileAccess.open(RED_BLACK_AGENTS_CONFIG_FILE, FileAccess.READ)
@@ -163,9 +171,19 @@ func import_config():
 	scenario = Scenarios[parameters["scenario"]]
 	get_tree().root.size = (Vector2i(parameters["window_x"], parameters["window_y"]))
 	
+	if parameters["save"] == true:
+		start_save()
 
+func start_save():
+	var file_location: String = "user://" + Time.get_datetime_string_from_system().replace(":", "-") + ".sav"
+	sim_file = FileAccess.open(file_location, FileAccess.WRITE)
+ 
 func pause():
 	paused = !paused
+
+func save():
+	sim_file.close()
+	start_save()
 
 ## Generates the initial information of all agents, such as starting position/velocity, as well as the color.
 func generate_agents():
@@ -231,6 +249,9 @@ func _process(delta: float) -> void:
 
 ## Processing behavior that has to run on the RenderingServer object.
 func gpu_process(delta: float):
+	if delta > 0:
+		frame += 1
+	
 	# First pass
 	var param_buffer_bytes: PackedByteArray = generate_parameter_buffer(delta, 0)
 	rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
@@ -242,6 +263,12 @@ func gpu_process(delta: float):
 	param_buffer_bytes = generate_parameter_buffer(delta, 1)
 	rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
 	run_compute(agent_pipeline)
+	
+	# Testing saving
+	#simulation_file.saved_floats.append(agent_data_1_texture_rd.get_image().get_data().to_float32_array())
+	if parameters["save"] == true:
+		sim_file.store_line("F%d:" % frame)
+		sim_file.store_line(str(agent_data_1_texture_rd.get_image().get_data().to_float32_array()))
 
 func generate_parameter_buffer(delta: float, stage: float) -> PackedByteArray:
 	var floats: PackedFloat32Array = [
@@ -311,7 +338,7 @@ func setup_compute():
 	
 	# Can be changed to a 64-bit format if the extra precision is ever needed.
 	texture_format.format = RenderingDevice.DATA_FORMAT_R32G32B32A32_SFLOAT 
-	texture_format.usage_bits = RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT | RenderingDevice.TEXTURE_USAGE_STORAGE_BIT
+	texture_format.usage_bits = RenderingDevice.TEXTURE_USAGE_SAMPLING_BIT | RenderingDevice.TEXTURE_USAGE_STORAGE_BIT | RenderingDevice.TEXTURE_USAGE_CAN_COPY_FROM_BIT
 	
 	var texture_view: RDTextureView = RDTextureView.new()
 	agent_data_1_buffer = rendering_device.texture_create(texture_format, texture_view, [])

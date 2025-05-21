@@ -18,6 +18,8 @@ func _make_visible(visible: bool) -> void:
 	if plugin_scene:
 		plugin_scene.visible = visible
 
+
+
 func _get_plugin_name() -> String:
 	return "Simulation Interface"
 

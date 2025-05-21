@@ -110,6 +110,11 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Disable Rendering"
 
+[node name="SaveCheckBox" type="CheckBox" parent="VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Save Simulation"
+
 [node name="StartButton" type="Button" parent="VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2

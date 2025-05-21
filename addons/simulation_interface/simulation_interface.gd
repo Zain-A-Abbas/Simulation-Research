@@ -7,6 +7,7 @@ class_name SimulationInterface
 @onready var max_velocity_spinbox: SpinBox = %MaxVelocitySpinbox
 @onready var radius_spin_box: SpinBox = %RadiusSpinBox
 @onready var rendering_check_box: CheckBox = %RenderingCheckBox
+@onready var save_check_box: CheckBox = %SaveCheckBox
 @onready var start_button: Button = %StartButton
 @onready var window_x_spin_box: SpinBox = %WindowXSpinBox
 @onready var window_y_spin_box: SpinBox = %WindowYSpinBox
@@ -27,9 +28,11 @@ func start_simulation():
 		"radius": 16,
 		"scenario": scenario_option.get_item_text(scenario_option.selected),
 		"disable_rendering": rendering_check_box.button_pressed,
+		"save": save_check_box.button_pressed,
 		"window_x": window_x_spin_box.value,
 		"window_y": window_y_spin_box.value,
 	}
+	
 	var config_file: FileAccess = FileAccess.open(config_file_location, FileAccess.WRITE)
 	config_file.store_line(JSON.stringify(param_dict))
 	config_file.close()

@@ -13,6 +13,7 @@ config_version=5
 config/name="Simulation Test"
 run/main_scene="uid://ca56nxvpxws5u"
 config/features=PackedStringArray("4.4", "Forward Plus")
+run/max_fps=24
 config/icon="res://icon.svg"
 
 [autoload]
