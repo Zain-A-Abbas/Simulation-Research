@@ -128,7 +128,7 @@ var time_passed: int = 0
 #endregion
 
 ## Stores the values saved every frame of execution
-var simulation_file: SimulationFile = SimulationFile.new()
+var simulation_saver: SimulationSaver = SimulationSaver.new()
 var sim_file: FileAccess
 var frame: int = 0
 
@@ -183,6 +183,10 @@ func pause():
 
 func save():
 	sim_file.close()
+	
+	# Now that the raw file has been saved, open it again and write its contents in a human-readable format
+	simulation_saver.save_red_black(sim_file.get_path())
+	
 	start_save()
 
 ## Generates the initial information of all agents, such as starting position/velocity, as well as the color.

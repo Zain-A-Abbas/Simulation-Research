@@ -1,0 +1,5 @@
+[gd_resource type="Theme" format=3 uid="uid://c456o0y7vi54c"]
+
+[resource]
+Heading/base_type = &"Label"
+Heading/font_sizes/font_size = 32
