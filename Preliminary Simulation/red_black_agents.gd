@@ -267,8 +267,7 @@ func gpu_process(delta: float):
 	# Testing saving
 	#simulation_file.saved_floats.append(agent_data_1_texture_rd.get_image().get_data().to_float32_array())
 	if parameters["save"] == true:
-		sim_file.store_line("F%d:" % frame)
-		sim_file.store_line(str(agent_data_1_texture_rd.get_image().get_data().to_float32_array()))
+		sim_file.store_var((agent_data_1_texture_rd.get_image().get_data().to_float32_array()))
 
 func generate_parameter_buffer(delta: float, stage: float) -> PackedByteArray:
 	var floats: PackedFloat32Array = [
