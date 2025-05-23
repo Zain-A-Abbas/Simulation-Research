@@ -25,7 +25,7 @@ func start_simulation():
 	var param_dict: Dictionary[String, Variant] = {
 		"agent_count": agent_count_spin_box.value,
 		"max_velocity": max_velocity_spinbox.value,
-		"radius": 16,
+		"radius": radius_spin_box.value,
 		"scenario": scenario_option.get_item_text(scenario_option.selected),
 		"disable_rendering": rendering_check_box.button_pressed,
 		"save": save_check_box.button_pressed,

@@ -18,14 +18,24 @@ void process() {
 	);
 
 	// The r and g color channels store the agent's x/y positions
-	// The b color channel stores whether or not the agent is blue (confusing but red is easier on the eyes)
-	// The alpha channel stores the agent's radius
+	// The b and g color channels store the agent's velocity (used for rotation)
 	vec4 agent_params = texelFetch(agent_data, texel_pos, 0);
 
-	TRANSFORM[0].x = agent_params.a * (radius / 32.0);
-	TRANSFORM[1].y = agent_params.a * (radius / 32.0);
+	
+	// Rotation
+	float dir = atan(agent_params.a, agent_params.b) + PI / 2.0;
+	TRANSFORM[0].x = cos(dir);
+	TRANSFORM[0].y = sin(dir);
+	TRANSFORM[1].x = -sin(dir);
+	TRANSFORM[1].y = cos(dir);
+	
+	// Scale
+	float texture_radius = (radius / 32.0);
+	TRANSFORM[0] *= texture_radius;
+	TRANSFORM[1] *= texture_radius;
+	
+	// Translation
 	TRANSFORM[3].xy = vec2(agent_params.r, agent_params.g);
-
-	// The b channel is either 1 or 0, and when it's 1, use the non-black color
-	COLOR = vec4(agent_params.b, 0.0, 0.0, 1.0);
+	
+	COLOR = vec4(1.0);
 }

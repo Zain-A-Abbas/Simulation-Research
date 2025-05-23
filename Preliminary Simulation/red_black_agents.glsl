@@ -177,7 +177,7 @@ void moveStage() {
     );
 
     agent_vel.data[idx] = ksi * agent_pref_vel.data[idx]  + (1.0-ksi) * agent_vel.data[idx];
-    imageStore(agent_data, pixel_coord, vec4(agent_pos.data[idx].x, agent_pos.data[idx].y, agent_color.data[idx], 1.0));
+    imageStore(agent_data, pixel_coord, vec4(agent_pos.data[idx].x, agent_pos.data[idx].y, agent_vel.data[idx].x, agent_vel.data[idx].y));
 }
 
 void main() {
