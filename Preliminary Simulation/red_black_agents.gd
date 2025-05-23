@@ -22,7 +22,9 @@ class_name RedBlackAgents
 ## Enum storing all possible scenarios that can be simulated.
 enum Scenarios {
 	LONG_RANGE_CONSTRAINT,
-	OPPOSING_AGENTS
+	OPPOSING_AGENTS,
+	OPPOSING_SMALL_GROUPS,
+	OPPOSING_LARGE_GROUPS,
 }
 
 const RED_BLACK_AGENTS_CONFIG_FILE: String = "user://red_black_agents_config.json"
@@ -226,14 +228,46 @@ func generate_agents():
 			Vector2(-20, 0)
 			])
 		delta_corrections.append_array([
-			Vector2.ZERO,
-			Vector2.ZERO
+			Vector4.ZERO,
+			Vector4.ZERO
 			])
 		agent_colors.append_array([1, 0])
 		agent_inv_mass.append_array([
 			0.2,
 			0.2
 		])
+	
+	elif scenario == Scenarios.OPPOSING_SMALL_GROUPS:
+		count = 100
+		var group_positions: Array[Vector2] = [Vector2(100, 200), Vector2(500, 200 + radius / 2.0)]
+		var group_velocities: Array[Vector2] = [Vector2(max_velocity, 0), Vector2(-max_velocity, 0)]
+		var agent_gap: Vector2 = Vector2(radius * 1.2, radius * 1.2)
+		for z in 2:
+			for y in 5:
+				for x in 10:
+					agent_positions.append(group_positions[z] + Vector2(x * agent_gap.x, y * agent_gap.y))
+					agent_velocities.append(group_velocities[z])
+					agent_preferred_velocities.append(group_velocities[z])
+					delta_corrections.append(Vector4.ZERO)
+					agent_colors.append(1)
+					agent_inv_mass.append(0.5)
+
+	elif scenario == Scenarios.OPPOSING_LARGE_GROUPS:
+		radius = 10
+		count = 1600
+		var group_positions: Array[Vector2] = [Vector2(100, 50), Vector2(600, 50 + radius * 4.5)]
+		var group_velocities: Array[Vector2] = [Vector2(max_velocity, 0), Vector2(-max_velocity, 0)]
+		var agent_gap: Vector2 = Vector2(radius * 1.2, radius * 2.0)
+		for z in 2:
+			for y in 40:
+				for x in 20:
+					agent_positions.append(group_positions[z] + Vector2(x * agent_gap.x, y * agent_gap.y))
+					agent_velocities.append(group_velocities[z])
+					agent_preferred_velocities.append(group_velocities[z])
+					delta_corrections.append(Vector4.ZERO)
+					agent_colors.append(1)
+					agent_inv_mass.append(0.5)
+
 
 ## Runs every frame.
 func _process(delta: float) -> void:

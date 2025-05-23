@@ -58,11 +58,15 @@ text = "Scenario"
 unique_name_in_owner = true
 layout_mode = 2
 selected = 0
-item_count = 2
+item_count = 4
 popup/item_0/text = "LONG_RANGE_CONSTRAINT"
 popup/item_0/id = 0
 popup/item_1/text = "OPPOSING_AGENTS"
 popup/item_1/id = 1
+popup/item_2/text = "OPPOSING_SMALL_GROUPS"
+popup/item_2/id = 2
+popup/item_3/text = "OPPOSING_LARGE_GROUPS"
+popup/item_3/id = 3
 
 [node name="HBoxContainer3" type="HBoxContainer" parent="VBoxContainer/VBoxContainer"]
 layout_mode = 2
