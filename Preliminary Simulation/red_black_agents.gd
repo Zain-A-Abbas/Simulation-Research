@@ -241,7 +241,7 @@ func generate_agents():
 		count = 100
 		var group_positions: Array[Vector2] = [Vector2(100, 200), Vector2(500, 200 + radius / 2.0)]
 		var group_velocities: Array[Vector2] = [Vector2(max_velocity, 0), Vector2(-max_velocity, 0)]
-		var agent_gap: Vector2 = Vector2(radius * 1.2, radius * 1.2)
+		var agent_gap: Vector2 = Vector2(radius * 1.2, radius * 1.25)
 		for z in 2:
 			for y in 5:
 				for x in 10:
@@ -257,7 +257,7 @@ func generate_agents():
 		count = 1600
 		var group_positions: Array[Vector2] = [Vector2(100, 50), Vector2(600, 50 + radius * 4.5)]
 		var group_velocities: Array[Vector2] = [Vector2(max_velocity, 0), Vector2(-max_velocity, 0)]
-		var agent_gap: Vector2 = Vector2(radius * 1.2, radius * 2.0)
+		var agent_gap: Vector2 = Vector2(radius * 1.2, radius * 1.25)
 		for z in 2:
 			for y in 40:
 				for x in 20:
