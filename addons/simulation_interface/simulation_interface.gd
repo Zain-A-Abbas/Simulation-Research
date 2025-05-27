@@ -11,6 +11,9 @@ class_name SimulationInterface
 @onready var start_button: Button = %StartButton
 @onready var window_x_spin_box: SpinBox = %WindowXSpinBox
 @onready var window_y_spin_box: SpinBox = %WindowYSpinBox
+@onready var hashes_spin_box: SpinBox = %HashesSpinBox
+
+@onready var error_label: Label = %ErrorLabel
 
 var config_file_location: String = RedBlackAgents.RED_BLACK_AGENTS_CONFIG_FILE
 const RED_BLACK_AGENTS_PATH: String = "res://Preliminary Simulation/red_black_agents.tscn"
@@ -22,6 +25,11 @@ func _ready() -> void:
 		scenario_option.add_item(scenario)
 
 func start_simulation():
+	if (step_decimals(window_x_spin_box.value / hashes_spin_box.value) > 0.0 || step_decimals(window_y_spin_box.value / hashes_spin_box.value) > 0.0):
+		set_error_text("Hash count must be divisible by window width and height")
+		return
+	
+	
 	var param_dict: Dictionary[String, Variant] = {
 		"agent_count": agent_count_spin_box.value,
 		"max_velocity": max_velocity_spinbox.value,
@@ -31,9 +39,15 @@ func start_simulation():
 		"save": save_check_box.button_pressed,
 		"window_x": window_x_spin_box.value,
 		"window_y": window_y_spin_box.value,
+		"hash_size": hashes_spin_box.value,
 	}
 	
 	var config_file: FileAccess = FileAccess.open(config_file_location, FileAccess.WRITE)
 	config_file.store_line(JSON.stringify(param_dict))
 	config_file.close()
 	EditorInterface.play_custom_scene(RED_BLACK_AGENTS_PATH)
+
+func set_error_text(text: String):
+	error_label.text = text
+	await get_tree().create_timer(2.0).timeout
+	error_label.text = ""

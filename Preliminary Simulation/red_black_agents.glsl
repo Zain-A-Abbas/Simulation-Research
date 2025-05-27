@@ -1,49 +1,7 @@
 #[compute]
 #version 450
 
-layout(local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
-
-layout(set = 0, binding = 0, std430) restrict buffer Position {
-    vec2 data[];
-} agent_pos;
-
-layout(set = 0, binding = 1, std430) restrict buffer Velocity {
-    vec2 data[];
-} agent_vel;
-
-layout(set = 0, binding = 2, std430) restrict buffer PreferredVelocity {
-    vec2 data[];
-} agent_pref_vel;
-
-// z index functions as a counter
-layout(set = 0, binding = 3, std430) restrict buffer DeltaCorrections {
-    vec4 data[];
-} delta_corrections;
-
-layout(set = 0, binding = 4, std430) restrict buffer Color {
-    int data[];
-} agent_color;
-
-/*layout(set = 0, binding = 5, std430) restrict buffer Radius {
-    float data[];
-} agent_radius;*/
-
-// Parameters that are exposed/decided on the CPU-side. Stores data typically not expected to be changed once it reaches the GPU.
-layout(set = 0, binding = 5, std430) restrict buffer Params {
-    float image_size; // 0 (Counting byte alignment)
-    float agent_count; // 4
-    float screen_width; // 8
-    float screen_height; // 12
-    float radius; // 0
-    float radius_squared; // 4 
-    float delta; // 8
-    float stage; // 12
-    float inv_mass[]; // 0
-} params;
-
-// The textures here are each used to pass the image back to the engine, as passing the shader data directly to a texture keeps everything
-// on the GPU without having to pass it back over to CPU memory
-layout(rgba32f, binding = 6) uniform image2D agent_data;
+#include "shared_data.glsl"
 
 const float INV_MASS = 0.01625;
 const float EPSILON = 0.0001;
@@ -73,6 +31,7 @@ vec2 clamp2D(float vx, float vy, float maxValue) {
 // after adding the velocity and deltas.
 // To keep the same functionality, px/py are computed on the spot here.
 void longRangeConstraint(int i, int j) {
+
     vec2 ip = agent_pos.data[i] + agent_vel.data[i] * params.delta;
     vec2 jp = agent_pos.data[j] + agent_vel.data[j] * params.delta;
     
@@ -144,26 +103,47 @@ void correctionsStage() {
     int idx = int(gl_GlobalInvocationID.x);
     if (idx >= params.agent_count) {return;}
     delta_corrections.data[idx] = vec4(0.0);
-    for (int j = 0; j < params.agent_count; j++) {
+
+    int agent_hash = hash.data[idx];
+    vec2 hash_location = one_to_two(agent_hash, hash_params.hash_x);
+    vec2 starting_hash = hash_location - vec2(1, 1); // upper-left of own hash
+    vec2 current_hash = starting_hash;
+    
+    for (int y = 0; y < 3; y++) {
+        current_hash.y = starting_hash.y + y;
+        if (current_hash.y < 0 || current_hash.y > hash_params.hash_y) continue;
+        
+        for (int x = 0; x < 3; x++) {
+            current_hash.x = starting_hash.x + x;
+            if (current_hash.x < 0 || current_hash.x > hash_params.hash_x) continue;
+
+            int hash_index = two_to_one(current_hash, hash_params.hash_x);
+
+            for (int i = hash_prefix_sum.data[hash_index - 1]; i < hash_prefix_sum.data[hash_index]; i++) {
+                int other_agent = hash_reindex.data[i];
+                if (other_agent == idx) continue;
+                longRangeConstraint(idx, other_agent);
+            } 
+        }
+    }
+
+    /*for (int j = 0; j < params.agent_count; j++) {
         if (j == idx) {continue;}
         longRangeConstraint(idx, j);
-    }
+    }*/
 }
 
 void moveStage() {
     int idx = int(gl_GlobalInvocationID.x);
     if (idx >= params.agent_count) {return;}
-    vec2 move = agent_vel.data[idx] * params.delta;
-
 
     if (delta_corrections.data[idx].z > 0.0) {
-        move.x += delta_corrections.data[idx].x / delta_corrections.data[idx].z;
-        move.y += delta_corrections.data[idx].y / delta_corrections.data[idx].z;
+        agent_vel.data[idx] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
     }
 
-    agent_pos.data[idx] += move;
-    agent_vel.data[idx] = move / params.delta;
     agent_vel.data[idx] = clamp2D(agent_vel.data[idx].x, agent_vel.data[idx].y, MAX_SPEED);
+    
+    agent_pos.data[idx] += agent_vel.data[idx] * params.delta;
 
     if (agent_pos.data[idx].x > params.screen_width) {agent_pos.data[idx].x -= params.screen_width;}
     if (agent_pos.data[idx].y > params.screen_height) {agent_pos.data[idx].y -= params.screen_height;}
@@ -177,6 +157,8 @@ void moveStage() {
     );
 
     agent_vel.data[idx] = ksi * agent_pref_vel.data[idx]  + (1.0-ksi) * agent_vel.data[idx];
+
+    hash.data[idx] = int(agent_pos.data[idx].x / hash_params.hash_size) + int(agent_pos.data[idx].y / hash_params.hash_size) * hash_params.hash_x;
     imageStore(agent_data, pixel_coord, vec4(agent_pos.data[idx].x, agent_pos.data[idx].y, agent_vel.data[idx].x, agent_vel.data[idx].y));
 }
 

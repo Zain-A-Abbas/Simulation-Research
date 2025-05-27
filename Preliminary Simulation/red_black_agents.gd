@@ -18,6 +18,7 @@ class_name RedBlackAgents
 @onready var fps_label: Label = %FPSLabel
 @onready var pause_button: Button = %PauseButton
 @onready var save_button: Button = %SaveButton
+@onready var hash_viewer: HashViewer = %HashViewer
 
 ## Enum storing all possible scenarios that can be simulated.
 enum Scenarios {
@@ -46,6 +47,11 @@ var max_velocity: float = 32.0
 
 ## Radius of each agent.
 var radius: float = 16.0
+
+## Hash counts
+var hash_count: int = 256
+var horizontal_hash_count: int = 16
+var vertical_hash_count: int = 16
 
 #endregion
 
@@ -117,6 +123,19 @@ var param_buffer: RID
 ## Uniform for the previous buffer.
 var param_uniform: RDUniform
 
+var hash_size: int = 32
+var hashes: Vector2i = Vector2i.ZERO
+
+var hash_shader : RID
+var hash_pipeline : RID
+
+var hash_buffer : RID
+var hash_sum_buffer : RID
+var hash_prefix_sum_buffer : RID
+var hash_index_tracker_buffer : RID
+var hash_reindex_buffer : RID
+var hash_params_buffer : RID
+
 var rng: RandomNumberGenerator = RandomNumberGenerator.new()
 
 var parameters: Dictionary = {}
@@ -172,6 +191,18 @@ func import_config():
 	radius = parameters["radius"]
 	scenario = Scenarios[parameters["scenario"]]
 	get_tree().root.size = (Vector2i(parameters["window_x"], parameters["window_y"]))
+	
+	hash_size = parameters["hash_size"]
+	hashes = Vector2i(
+		snappedf(get_tree().root.size.x / hash_size + 0.4, 1),
+		snappedf(get_tree().root.size.y / hash_size + 0.4, 1),
+	)
+	hash_count = hashes.x * hashes.y
+	hash_size
+	
+	hash_viewer.h_hashes = hashes.x
+	hash_viewer.v_hashes = hashes.y
+	hash_viewer.queue_redraw()
 	
 	if parameters["save"] == true:
 		start_save()
@@ -290,8 +321,21 @@ func gpu_process(delta: float):
 	if delta > 0:
 		frame += 1
 	
-	# First pass
 	var param_buffer_bytes: PackedByteArray = generate_parameter_buffer(delta, 0)
+	
+	# Bin setup
+	param_buffer_bytes = generate_parameter_buffer(delta, 0) 
+	rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
+	run_compute(hash_pipeline)
+	param_buffer_bytes = generate_parameter_buffer(delta, 1) 
+	rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
+	run_compute(hash_pipeline)
+	param_buffer_bytes = generate_parameter_buffer(delta, 2) 
+	rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
+	run_compute(hash_pipeline)
+	
+	# First pass
+	param_buffer_bytes = generate_parameter_buffer(delta, 0)
 	rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
 	run_compute(agent_pipeline)
 	
@@ -344,6 +388,12 @@ func setup_compute():
 	agent_compute_shader = rendering_device.shader_create_from_spirv(compiled_shader)
 	agent_pipeline = rendering_device.compute_pipeline_create(agent_compute_shader)
 	
+	shader = load("res://Preliminary Simulation/bin_operations.glsl")
+	compiled_shader = shader.get_spirv()
+	hash_shader = rendering_device.shader_create_from_spirv(compiled_shader)
+	hash_pipeline = rendering_device.compute_pipeline_create(hash_shader)
+	
+	
 	# Generates the buffers and then the uniform they are mapped to.
 	
 	agent_position_buffer = generate_packed_array_buffer(agent_positions)
@@ -364,9 +414,28 @@ func setup_compute():
 	#agent_radii_buffer = generate_packed_array_buffer(agent_radii)
 	#var agent_radii_uniform: RDUniform = generate_compute_uniform(agent_radii_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 3)
 	
-	var param_buffer_bytes = generate_parameter_buffer(0, 0)
+	var param_buffer_bytes: PackedByteArray = generate_parameter_buffer(0, 0)
 	param_buffer = rendering_device.storage_buffer_create(param_buffer_bytes.size(), param_buffer_bytes)
 	param_uniform = generate_compute_uniform(param_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 5)
+	
+	var hash_param_buffer_bytes: PackedByteArray = PackedInt32Array([hash_size, hashes.x, hashes.y, hash_count]).to_byte_array()
+	hash_params_buffer = rendering_device.storage_buffer_create(hash_param_buffer_bytes.size(), hash_param_buffer_bytes)
+	var hash_params_uniform: RDUniform = generate_compute_uniform(hash_params_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 6)
+	
+	hash_buffer = generate_int_buffer(agent_count)
+	var hash_buffer_uniform: RDUniform = generate_compute_uniform(hash_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 7)
+	
+	hash_sum_buffer = generate_int_buffer(hash_count)
+	var hash_sum_buffer_uniform: RDUniform = generate_compute_uniform(hash_sum_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 8)
+	
+	hash_prefix_sum_buffer = generate_int_buffer(hash_count)
+	var hash_prefix_sum_buffer_uniform: RDUniform = generate_compute_uniform(hash_prefix_sum_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 9)
+	
+	hash_index_tracker_buffer = generate_int_buffer(hash_count)
+	var hash_index_tracker_buffer_uniform: RDUniform = generate_compute_uniform(hash_index_tracker_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 10)
+	
+	hash_reindex_buffer = generate_int_buffer(agent_count)
+	var hash_reindex_buffer_uniform: RDUniform = generate_compute_uniform(hash_reindex_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 11)
 	
 	# Prepares the image data to bind it to the GPU
 	var texture_format: RDTextureFormat = RDTextureFormat.new()
@@ -380,7 +449,7 @@ func setup_compute():
 	var texture_view: RDTextureView = RDTextureView.new()
 	agent_data_1_buffer = rendering_device.texture_create(texture_format, texture_view, [])
 	agent_data_1_texture_rd.texture_rd_rid = agent_data_1_buffer
-	var agent_data_1_buffer_uniform = generate_compute_uniform(agent_data_1_buffer, RenderingDevice.UNIFORM_TYPE_IMAGE, 6)
+	var agent_data_1_buffer_uniform = generate_compute_uniform(agent_data_1_buffer, RenderingDevice.UNIFORM_TYPE_IMAGE, 12)
 	
 	agent_bindings = [
 		agent_position_uniform,
@@ -390,6 +459,12 @@ func setup_compute():
 		agent_color_uniform,
 		#agent_radii_uniform,
 		param_uniform,
+		hash_params_uniform,
+		hash_buffer_uniform,
+		hash_sum_buffer_uniform,
+		hash_prefix_sum_buffer_uniform,
+		hash_index_tracker_buffer_uniform,
+		hash_reindex_buffer_uniform,
 		agent_data_1_buffer_uniform
 	]
 	
@@ -398,6 +473,13 @@ func setup_compute():
 func generate_packed_array_buffer(data) -> RID:
 	var data_bytes: PackedByteArray = data.to_byte_array()
 	var data_buffer: RID = rendering_device.storage_buffer_create(data_bytes.size(), data_bytes)
+	return data_buffer
+
+func generate_int_buffer(size: int):
+	var data = []
+	data.resize(size)
+	var data_buffer_bytes = PackedInt32Array(data).to_byte_array()
+	var data_buffer = rendering_device.storage_buffer_create(data_buffer_bytes.size(), data_buffer_bytes)
 	return data_buffer
 
 

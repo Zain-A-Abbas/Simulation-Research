@@ -103,25 +103,39 @@ layout_mode = 2
 
 [node name="Label" type="Label" parent="VBoxContainer/VBoxContainer/HBoxContainer5"]
 layout_mode = 2
-text = "Window X"
+text = "Window Width"
 
 [node name="WindowXSpinBox" type="SpinBox" parent="VBoxContainer/VBoxContainer/HBoxContainer5"]
 unique_name_in_owner = true
 layout_mode = 2
 min_value = 1.0
 max_value = 10000.0
-value = 1000.0
+value = 1024.0
 
 [node name="Label2" type="Label" parent="VBoxContainer/VBoxContainer/HBoxContainer5"]
 layout_mode = 2
-text = "Window Y"
+text = "Window Height"
 
 [node name="WindowYSpinBox" type="SpinBox" parent="VBoxContainer/VBoxContainer/HBoxContainer5"]
 unique_name_in_owner = true
 layout_mode = 2
 min_value = 1.0
 max_value = 10000.0
-value = 1000.0
+value = 1024.0
+
+[node name="HBoxContainer6" type="HBoxContainer" parent="VBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainer/VBoxContainer/HBoxContainer6"]
+layout_mode = 2
+text = "Spatial Hash Size"
+
+[node name="HashesSpinBox" type="SpinBox" parent="VBoxContainer/VBoxContainer/HBoxContainer6"]
+unique_name_in_owner = true
+layout_mode = 2
+min_value = 1.0
+max_value = 1024.0
+value = 64.0
 
 [node name="RenderingCheckBox" type="CheckBox" parent="VBoxContainer/VBoxContainer"]
 unique_name_in_owner = true
@@ -137,3 +151,10 @@ text = "Save Simulation"
 unique_name_in_owner = true
 layout_mode = 2
 text = "Run Simulation"
+
+[node name="ErrorLabel" type="Label" parent="VBoxContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.245241, 0.187845, 1)
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
