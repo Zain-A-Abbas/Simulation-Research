@@ -104,33 +104,38 @@ void correctionsStage() {
     if (idx >= params.agent_count) {return;}
     delta_corrections.data[idx] = vec4(0.0);
 
-    int agent_hash = hash.data[idx];
-    vec2 hash_location = one_to_two(agent_hash, hash_params.hash_x);
-    vec2 starting_hash = hash_location - vec2(1, 1); // upper-left of own hash
-    vec2 current_hash = starting_hash;
     
-    for (int y = 0; y < 3; y++) {
-        current_hash.y = starting_hash.y + y;
-        if (current_hash.y < 0 || current_hash.y > hash_params.hash_y) continue;
+    if (params.use_spatial_hash > 0.0) {
+        int agent_hash = hash.data[idx];
+        vec2 hash_location = one_to_two(agent_hash, hash_params.hash_x);
+        vec2 starting_hash = hash_location - vec2(1, 1); // upper-left of own hash
+        vec2 current_hash = starting_hash;
         
-        for (int x = 0; x < 3; x++) {
-            current_hash.x = starting_hash.x + x;
-            if (current_hash.x < 0 || current_hash.x > hash_params.hash_x) continue;
+        for (int y = 0; y < 3; y++) {
+            current_hash.y = starting_hash.y + y;
+            if (current_hash.y < 0 || current_hash.y > hash_params.hash_y) continue;
+            
+            for (int x = 0; x < 3; x++) {
+                current_hash.x = starting_hash.x + x;
+                if (current_hash.x < 0 || current_hash.x > hash_params.hash_x) continue;
 
-            int hash_index = two_to_one(current_hash, hash_params.hash_x);
+                int hash_index = two_to_one(current_hash, hash_params.hash_x);
 
-            for (int i = hash_prefix_sum.data[hash_index - 1]; i < hash_prefix_sum.data[hash_index]; i++) {
-                int other_agent = hash_reindex.data[i];
-                if (other_agent == idx) continue;
-                longRangeConstraint(idx, other_agent);
-            } 
+                for (int i = hash_prefix_sum.data[hash_index - 1]; i < hash_prefix_sum.data[hash_index]; i++) {
+                    int other_agent = hash_reindex.data[i];
+                    if (other_agent == idx) continue;
+                    longRangeConstraint(idx, other_agent);
+                } 
+            }
+        }
+    }
+    else {
+        for (int j = 0; j < params.agent_count; j++) {
+            if (j == idx) {continue;}
+            longRangeConstraint(idx, j);
         }
     }
 
-    /*for (int j = 0; j < params.agent_count; j++) {
-        if (j == idx) {continue;}
-        longRangeConstraint(idx, j);
-    }*/
 }
 
 void moveStage() {
@@ -158,7 +163,9 @@ void moveStage() {
 
     agent_vel.data[idx] = ksi * agent_pref_vel.data[idx]  + (1.0-ksi) * agent_vel.data[idx];
 
-    hash.data[idx] = int(agent_pos.data[idx].x / hash_params.hash_size) + int(agent_pos.data[idx].y / hash_params.hash_size) * hash_params.hash_x;
+    if (params.use_spatial_hash > 0.0) {
+        hash.data[idx] = int(agent_pos.data[idx].x / hash_params.hash_size) + int(agent_pos.data[idx].y / hash_params.hash_size) * hash_params.hash_x;
+    }
     imageStore(agent_data, pixel_coord, vec4(agent_pos.data[idx].x, agent_pos.data[idx].y, agent_vel.data[idx].x, agent_vel.data[idx].y));
 }
 

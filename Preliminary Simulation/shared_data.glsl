@@ -35,6 +35,10 @@ layout(set = 0, binding = 5, std430) restrict buffer Params {
     float radius_squared; // 4 
     float delta; // 8
     float stage; // 12
+    float use_spatial_hash; // 0
+    float padding; // 4 (not using vec3 for padding because some glsl implementations treat vec3 as vec4)
+    float padding_2; // 8 (not using vec3 for padding because some glsl implementations treat vec3 as vec4)
+    float padding_3; // 12 (not using vec3 for padding because some glsl implementations treat vec3 as vec4)
     float inv_mass[]; // 0
 } params;
 

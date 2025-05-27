@@ -123,14 +123,22 @@ min_value = 1.0
 max_value = 10000.0
 value = 1024.0
 
-[node name="HBoxContainer6" type="HBoxContainer" parent="VBoxContainer/VBoxContainer"]
+[node name="SpatialHashesToggle" type="CheckButton" parent="VBoxContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 0
+button_pressed = true
+text = "Use Spatial Hashes"
+
+[node name="HashSettingsHbox" type="HBoxContainer" parent="VBoxContainer/VBoxContainer"]
+unique_name_in_owner = true
 layout_mode = 2
 
-[node name="Label" type="Label" parent="VBoxContainer/VBoxContainer/HBoxContainer6"]
+[node name="Label" type="Label" parent="VBoxContainer/VBoxContainer/HashSettingsHbox"]
 layout_mode = 2
 text = "Spatial Hash Size"
 
-[node name="HashesSpinBox" type="SpinBox" parent="VBoxContainer/VBoxContainer/HBoxContainer6"]
+[node name="HashesSpinBox" type="SpinBox" parent="VBoxContainer/VBoxContainer/HashSettingsHbox"]
 unique_name_in_owner = true
 layout_mode = 2
 min_value = 1.0

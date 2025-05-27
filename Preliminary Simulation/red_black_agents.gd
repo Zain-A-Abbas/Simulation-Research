@@ -48,7 +48,8 @@ var max_velocity: float = 32.0
 ## Radius of each agent.
 var radius: float = 16.0
 
-## Hash counts
+## Hash args
+var use_spatial_hash: bool = false
 var hash_count: int = 256
 var horizontal_hash_count: int = 16
 var vertical_hash_count: int = 16
@@ -192,17 +193,21 @@ func import_config():
 	scenario = Scenarios[parameters["scenario"]]
 	get_tree().root.size = (Vector2i(parameters["window_x"], parameters["window_y"]))
 	
-	hash_size = parameters["hash_size"]
-	hashes = Vector2i(
-		snappedf(get_tree().root.size.x / hash_size + 0.4, 1),
-		snappedf(get_tree().root.size.y / hash_size + 0.4, 1),
-	)
-	hash_count = hashes.x * hashes.y
-	hash_size
+	if parameters.has("use_hashes"):
+		use_spatial_hash = parameters["use_hashes"]
 	
-	hash_viewer.h_hashes = hashes.x
-	hash_viewer.v_hashes = hashes.y
-	hash_viewer.queue_redraw()
+	if use_spatial_hash:
+		hash_size = parameters["hash_size"]
+		hashes = Vector2i(
+			snappedf(get_tree().root.size.x / hash_size + 0.4, 1),
+			snappedf(get_tree().root.size.y / hash_size + 0.4, 1),
+		)
+		hash_count = hashes.x * hashes.y
+		hash_size
+		
+		hash_viewer.h_hashes = hashes.x
+		hash_viewer.v_hashes = hashes.y
+		hash_viewer.queue_redraw()
 	
 	if parameters["save"] == true:
 		start_save()
@@ -323,16 +328,18 @@ func gpu_process(delta: float):
 	
 	var param_buffer_bytes: PackedByteArray = generate_parameter_buffer(delta, 0)
 	
-	# Bin setup
-	param_buffer_bytes = generate_parameter_buffer(delta, 0) 
-	rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
-	run_compute(hash_pipeline)
-	param_buffer_bytes = generate_parameter_buffer(delta, 1) 
-	rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
-	run_compute(hash_pipeline)
-	param_buffer_bytes = generate_parameter_buffer(delta, 2) 
-	rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
-	run_compute(hash_pipeline)
+	
+	# Hash setup
+	if use_spatial_hash:
+		param_buffer_bytes = generate_parameter_buffer(delta, 0) 
+		rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
+		run_compute(hash_pipeline)
+		param_buffer_bytes = generate_parameter_buffer(delta, 1) 
+		rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
+		run_compute(hash_pipeline)
+		param_buffer_bytes = generate_parameter_buffer(delta, 2) 
+		rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
+		run_compute(hash_pipeline)
 	
 	# First pass
 	param_buffer_bytes = generate_parameter_buffer(delta, 0)
@@ -360,7 +367,11 @@ func generate_parameter_buffer(delta: float, stage: float) -> PackedByteArray:
 		radius,
 		radius * radius * 1.05 * 1.05, #radius_squared
 		delta,
-		stage # "Stage" variable
+		stage, # "Stage" variable,
+		float(use_spatial_hash),
+		0.0,
+		0.0,
+		0.0
 	]
 	
 	# append_array must be used when including an additional array in parameter data

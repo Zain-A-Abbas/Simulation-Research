@@ -12,6 +12,8 @@ class_name SimulationInterface
 @onready var window_x_spin_box: SpinBox = %WindowXSpinBox
 @onready var window_y_spin_box: SpinBox = %WindowYSpinBox
 @onready var hashes_spin_box: SpinBox = %HashesSpinBox
+@onready var spatial_hashes_toggle: CheckButton = %SpatialHashesToggle
+@onready var hash_settings_hbox: HBoxContainer = %HashSettingsHbox
 
 @onready var error_label: Label = %ErrorLabel
 
@@ -20,6 +22,7 @@ const RED_BLACK_AGENTS_PATH: String = "res://Preliminary Simulation/red_black_ag
 
 func _ready() -> void:
 	start_button.pressed.connect(start_simulation)
+	spatial_hashes_toggle.toggled.connect(hash_settings_hbox.set_visible.bind())
 	scenario_option.clear()
 	for scenario in RedBlackAgents.Scenarios.keys():
 		scenario_option.add_item(scenario)
@@ -39,6 +42,7 @@ func start_simulation():
 		"save": save_check_box.button_pressed,
 		"window_x": window_x_spin_box.value,
 		"window_y": window_y_spin_box.value,
+		"use_hashes": spatial_hashes_toggle.button_pressed,
 		"hash_size": hashes_spin_box.value,
 	}
 	
