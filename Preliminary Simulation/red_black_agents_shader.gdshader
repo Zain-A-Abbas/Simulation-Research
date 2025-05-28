@@ -37,5 +37,5 @@ void process() {
 	// Translation
 	TRANSFORM[3].xy = vec2(agent_params.r, agent_params.g);
 
-	COLOR = vec4(1.0);
+	//COLOR = vec4(1.0);
 }

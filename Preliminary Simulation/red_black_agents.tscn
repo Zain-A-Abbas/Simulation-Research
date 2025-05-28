@@ -1,9 +1,10 @@
-[gd_scene load_steps=8 format=3 uid="uid://ca56nxvpxws5u"]
+[gd_scene load_steps=9 format=3 uid="uid://ca56nxvpxws5u"]
 
 [ext_resource type="Script" uid="uid://db1i01tuitgo1" path="res://Preliminary Simulation/red_black_agents.gd" id="1_8sook"]
 [ext_resource type="Texture2D" uid="uid://b37l6ubs03hr7" path="res://Preliminary Simulation/32x32.png" id="2_8sook"]
 [ext_resource type="Script" uid="uid://b5tomjrg561d4" path="res://Preliminary Simulation/hash_viewer.gd" id="2_mie0a"]
 [ext_resource type="Shader" uid="uid://dotxh30jv7r2f" path="res://Preliminary Simulation/red_black_agents_shader.gdshader" id="3_a4fjh"]
+[ext_resource type="Script" uid="uid://ctiw8jlsb8qgj" path="res://Preliminary Simulation/camera_2d.gd" id="5_a4fjh"]
 
 [sub_resource type="Texture2DRD" id="Texture2DRD_hejfd"]
 
@@ -27,6 +28,7 @@ position = Vector2(567, 319)
 texture = ExtResource("2_8sook")
 lifetime = 10.0
 explosiveness = 1.0
+visibility_rect = Rect2(-100, -100, 8192, 8192)
 process_material = SubResource("ShaderMaterial_3owe0")
 
 [node name="HashViewer" type="Node2D" parent="."]
@@ -87,3 +89,8 @@ unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "Save"
+
+[node name="Camera2D" type="Camera2D" parent="."]
+anchor_mode = 0
+limit_smoothed = true
+script = ExtResource("5_a4fjh")

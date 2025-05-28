@@ -274,14 +274,18 @@ func generate_agents():
 		])
 	
 	elif scenario == Scenarios.OPPOSING_SMALL_GROUPS:
-		count = 100
-		var group_positions: Array[Vector2] = [Vector2(100, 200), Vector2(500, 200 + radius / 2.0)]
+		count = agent_count
+		var agents_per_group: int = count / 2
+		var agents_per_row: int = sqrt(agents_per_group) * 2
+		var rows: int = sqrt(agents_per_group) / 2
+		
+		var agent_gap: Vector2 = Vector2(radius * 1.25, radius * 1.25)
+		var group_positions: Array[Vector2] = [Vector2(100, 200), Vector2(100 + 1.5 * agents_per_row * agent_gap.x, 200 + radius / 2.0)]
 		var group_velocities: Array[Vector2] = [Vector2(max_velocity, 0), Vector2(-max_velocity, 0)]
-		var agent_gap: Vector2 = Vector2(radius * 1.2, radius * 1.25)
 		for z in 2:
-			for y in 5:
-				for x in 10:
-					agent_positions.append(group_positions[z] + Vector2(x * agent_gap.x, y * agent_gap.y))
+			for row in rows:
+				for row_position in agents_per_row:
+					agent_positions.append(group_positions[z] + Vector2(row_position * agent_gap.x, row * agent_gap.y))
 					agent_velocities.append(group_velocities[z])
 					agent_preferred_velocities.append(group_velocities[z])
 					delta_corrections.append(Vector4.ZERO)
@@ -289,15 +293,18 @@ func generate_agents():
 					agent_inv_mass.append(0.5)
 
 	elif scenario == Scenarios.OPPOSING_LARGE_GROUPS:
-		radius = 10
-		count = 1600
-		var group_positions: Array[Vector2] = [Vector2(100, 50), Vector2(600, 50 + radius * 4.5)]
+		count = agent_count
+		var agents_per_group: int = count / 2
+		var agents_per_row: int = sqrt(agents_per_group) / 2
+		var rows: int = sqrt(agents_per_group) * 2
+		
+		var agent_gap: Vector2 = Vector2(radius * 1.25, radius * 1.25)
+		var group_positions: Array[Vector2] = [Vector2(100, 200), Vector2(100 + 2 * agents_per_row * agent_gap.x, 200 + radius / 2.0)]
 		var group_velocities: Array[Vector2] = [Vector2(max_velocity, 0), Vector2(-max_velocity, 0)]
-		var agent_gap: Vector2 = Vector2(radius * 1.2, radius * 1.25)
 		for z in 2:
-			for y in 40:
-				for x in 20:
-					agent_positions.append(group_positions[z] + Vector2(x * agent_gap.x, y * agent_gap.y))
+			for row in rows:
+				for row_position in agents_per_row:
+					agent_positions.append(group_positions[z] + Vector2(row_position * agent_gap.x, row * agent_gap.y))
 					agent_velocities.append(group_velocities[z])
 					agent_preferred_velocities.append(group_velocities[z])
 					delta_corrections.append(Vector4.ZERO)
@@ -338,6 +345,9 @@ func gpu_process(delta: float):
 		rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
 		run_compute(hash_pipeline)
 		param_buffer_bytes = generate_parameter_buffer(delta, 2) 
+		rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
+		run_compute(hash_pipeline)
+		param_buffer_bytes = generate_parameter_buffer(delta, 3) 
 		rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
 		run_compute(hash_pipeline)
 	

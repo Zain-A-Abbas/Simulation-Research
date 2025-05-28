@@ -10,7 +10,7 @@ const float C_TAO_0 = 20.0;
 const float dv_i = 1.0;
 const float C_LONG_RANGE_STIFF = 0.32;
 const float MAX_DELTA = 110.9;
-const float MAX_SPEED = 10.0;
+const float MAX_SPEED = 20.0;
 const float ksi = 0.1;
 float random(uvec3 st) {
     return fract(sin(dot(st.xy ,vec2(12.9898,78.233))) * 43758.5453123);

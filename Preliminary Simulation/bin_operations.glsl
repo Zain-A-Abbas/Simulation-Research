@@ -3,21 +3,17 @@
 
 #include "shared_data.glsl"
 
-void sum() {
+void zero_hashes() {
     int idx = int(gl_GlobalInvocationID.x);
-
     if (idx < hash_params.hash_count) {
         hash_sum.data[idx] = 0;
     }
-    barrier();
+}
 
+void sum() {
+    int idx = int(gl_GlobalInvocationID.x);
     if (idx < params.agent_count) {
         atomicAdd(hash_sum.data[hash.data[idx]], 1);
-
-        /*if (params.color_mode == 4) {
-            ivec2 my_pos = one_to_two(idx, int(params.image_size));
-            imageStore(boid_data, my_pos, vec4(0,0,0,0));
-        }*/
     }    
 }
 
@@ -53,12 +49,15 @@ void reindex() {
 void main() {
     
     if (params.stage == 0.0) {
-        sum();
+        zero_hashes();
     }
     else if (params.stage == 1.0) {
-        prefix_sum();
+        sum();
     }
     else if (params.stage == 2.0) {
+        prefix_sum();
+    }
+    else if (params.stage == 3.0) {
         reindex();
     }
 }
