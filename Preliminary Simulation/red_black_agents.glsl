@@ -10,7 +10,7 @@ const float C_TAO_0 = 20.0;
 const float dv_i = 1.0;
 const float C_LONG_RANGE_STIFF = 0.32;
 const float MAX_DELTA = 110.9;
-const float MAX_SPEED = 20.0;
+const float MAX_SPEED = 32.0;
 const float ksi = 0.1;
 float random(uvec3 st) {
     return fract(sin(dot(st.xy ,vec2(12.9898,78.233))) * 43758.5453123);
@@ -99,6 +99,22 @@ void longRangeConstraint(int i, int j) {
     }
 }
 
+vec2 rotate_velocity(int idx) {
+    vec2 curr_pos = agent_pos.data[idx];
+    vec2 pref_vel = agent_pref_vel.data[idx];
+    vec2 loc_targ = locomotion_targets.data[idx];
+
+    vec2 direction = normalize(loc_targ - curr_pos);
+    float angle = acos(clamp(dot(direction, normalize(pref_vel)), -1.0, 1.0));
+    
+    mat2 rot_mat = mat2(
+        cos(angle), sin(angle),
+        -sin(angle), cos(angle)
+    ); // The sines are flipped here because GLSL defines matrices in column-major order 
+
+    return pref_vel * rot_mat;
+}
+
 void correctionsStage() {
     int idx = int(gl_GlobalInvocationID.x);
     if (idx >= params.agent_count) {return;}
@@ -165,6 +181,16 @@ void moveStage() {
     if (params.use_spatial_hash > 0.0) {
         hash.data[idx] = int(agent_pos.data[idx].x / hash_params.hash_size) + int(agent_pos.data[idx].y / hash_params.hash_size) * hash_params.hash_x;
     }
+
+    if (params.use_locomotion_targets > 0.0) {
+        if (dot(agent_pos.data[idx] - locomotion_targets.data[idx], agent_pos.data[idx] - locomotion_targets.data[idx]) < 4.0) {
+            agent_pref_vel.data[idx] = vec2(0.0);
+            agent_vel.data[idx] = vec2(0.0);
+        } else {
+            agent_pref_vel.data[idx] = rotate_velocity(idx);
+        }
+    }
+
     imageStore(agent_data, pixel_coord, vec4(agent_pos.data[idx].x, agent_pos.data[idx].y, agent_vel.data[idx].x, agent_vel.data[idx].y));
 }
 

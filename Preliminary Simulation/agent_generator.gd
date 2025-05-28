@@ -73,7 +73,7 @@ func circle_position_exchange(red_black_agents: RedBlackAgents):
 	
 	red_black_agents.count = red_black_agents.agent_count
 	var circle_radius: float = red_black_agents.parameters["circle_radius"]
-	var circle_center: Vector2 = Vector2(circle_radius * 1.25, circle_radius * 1.25)
+	var circle_center: Vector2 = Vector2(circle_radius, circle_radius) + Vector2(256, 256)
 	var angle_offset: float = 0.0
 	
 	for agent in red_black_agents.agent_count:
@@ -89,6 +89,7 @@ func circle_position_exchange(red_black_agents: RedBlackAgents):
 			cos(angle_offset + PI)
 		) * circle_radius + circle_center)
 		
+		#red_black_agents.locomotion_targets.append(starting_position + Vector2(20, 20))
 		
 		var starting_vel: Vector2 = Vector2(red_black_agents.max_velocity, 0)
 		red_black_agents.agent_velocities.append(starting_vel)
