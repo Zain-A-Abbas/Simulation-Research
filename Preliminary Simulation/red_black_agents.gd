@@ -42,7 +42,7 @@ const SEED: int = 0
 var scenario: Scenarios = Scenarios.LONG_RANGE_CONSTRAINT
 
 ## The number of agents.
-var agent_count = 512
+var agent_count: int = 512
 
 ## Upper limit of velocity. 
 var max_velocity: float = 32.0
@@ -184,7 +184,7 @@ func _ready() -> void:
 	pause_button.pressed.connect(pause)
 	save_button.pressed.connect(save)
 	
-	generate_agents()
+	agent_generator.generate_agents(self)
 	image_size = ceili(sqrt(count))
 	if parameters["disable_rendering"]:
 		agent_particles.emitting = false
@@ -245,94 +245,6 @@ func save():
 	
 	start_save()
 
-## Generates the initial information of all agents, such as starting position/velocity, as well as the color.
-func generate_agents():
-	agent_positions.clear()
-	agent_velocities.clear()
-	agent_preferred_velocities.clear()
-	delta_corrections.clear()
-	agent_colors.clear()
-	agent_inv_mass.clear()
-	
-	if scenario == Scenarios.LONG_RANGE_CONSTRAINT:
-		count = agent_count
-		for agent in agent_count:
-			var starting_position: Vector2 = Vector2(rng.randf() * world_size.x, rng.randf() * world_size.y)
-			agent_positions.append(starting_position)
-			var starting_vel: Vector2 = Vector2(rng.randf_range(-1.0, 1.0) * max_velocity, rng.randf_range(-1.0, 1.0) * max_velocity)
-			agent_velocities.append(starting_vel)
-			agent_preferred_velocities.append(starting_vel)
-			delta_corrections.append(Vector4.ZERO)
-			locomotion_targets.append(Vector2.ZERO)
-			agent_colors.append(1 if rng.randf() > 0.5 else 0)
-			agent_inv_mass.append(rng.randf_range(0.2, 0.4)) # Unsure as of yet if this range is correct. 
-			#agent_radii.append(radius)
-	
-	elif scenario == Scenarios.OPPOSING_AGENTS:
-		count = 2
-		agent_positions.append_array([
-			Vector2(200, 200),
-			Vector2(500, 200)
-			])
-		agent_velocities.append_array([
-			Vector2(20, 0),
-			Vector2(-20, 0)
-			])
-		agent_preferred_velocities.append_array([
-			Vector2(20, 0),
-			Vector2(-20, 0)
-			])
-		delta_corrections.append_array([
-			Vector4.ZERO,
-			Vector4.ZERO
-			])
-		locomotion_targets.append_array([Vector2.ZERO, Vector2.ZERO])
-		agent_colors.append_array([1, 0])
-		agent_inv_mass.append_array([
-			0.2,
-			0.2
-		])
-	
-	elif scenario == Scenarios.OPPOSING_SMALL_GROUPS:
-		count = agent_count
-		var agents_per_group: int = count / 2
-		var agents_per_row: int = sqrt(agents_per_group) * 2
-		var rows: int = sqrt(agents_per_group) / 2
-		
-		var agent_gap: Vector2 = Vector2(radius * 1.25, radius * 1.25)
-		var group_positions: Array[Vector2] = [Vector2(100, 200), Vector2(100 + 1.5 * agents_per_row * agent_gap.x, 200 + radius / 2.0)]
-		var group_velocities: Array[Vector2] = [Vector2(max_velocity, 0), Vector2(-max_velocity, 0)]
-		for z in 2:
-			for row in rows:
-				for row_position in agents_per_row:
-					agent_positions.append(group_positions[z] + Vector2(row_position * agent_gap.x, row * agent_gap.y))
-					agent_velocities.append(group_velocities[z])
-					agent_preferred_velocities.append(group_velocities[z])
-					delta_corrections.append(Vector4.ZERO)
-					locomotion_targets.append(Vector2.ZERO)
-					agent_colors.append(1)
-					agent_inv_mass.append(0.5)
-
-	elif scenario == Scenarios.OPPOSING_LARGE_GROUPS:
-		count = agent_count
-		var agents_per_group: int = count / 2
-		var agents_per_row: int = sqrt(agents_per_group) / 2
-		var rows: int = sqrt(agents_per_group) * 2
-		
-		var agent_gap: Vector2 = Vector2(radius * 1.25, radius * 1.25)
-		var group_positions: Array[Vector2] = [Vector2(100, 200), Vector2(100 + 2 * agents_per_row * agent_gap.x, 200 + radius / 2.0)]
-		var group_velocities: Array[Vector2] = [Vector2(max_velocity, 0), Vector2(-max_velocity, 0)]
-		for z in 2:
-			for row in rows:
-				for row_position in agents_per_row:
-					agent_positions.append(group_positions[z] + Vector2(row_position * agent_gap.x, row * agent_gap.y))
-					agent_velocities.append(group_velocities[z])
-					agent_preferred_velocities.append(group_velocities[z])
-					delta_corrections.append(Vector4.ZERO)
-					locomotion_targets.append(Vector2.ZERO)
-					agent_colors.append(1)
-					agent_inv_mass.append(0.5)
-
 
 ## Runs every frame.
 func _process(delta: float) -> void:
@@ -355,7 +267,7 @@ func gpu_process(delta: float):
 	if delta > 0:
 		frame += 1
 	
-	var param_buffer_bytes: PackedByteArray = generate_parameter_buffer(delta, 0)
+	var param_buffer_bytes: PackedByteArray = []
 	
 	# Hash setup
 	if use_spatial_hash:
@@ -403,7 +315,7 @@ func generate_parameter_buffer(delta: float, stage: float) -> PackedByteArray:
 		delta,
 		stage, # "Stage" variable,
 		float(use_spatial_hash),
-		0.0,
+		float(use_locomotion_targets),
 		0.0,
 		0.0
 	]
@@ -579,4 +491,3 @@ func free_resources():
 	rendering_device.free_rid(hash_reindex_buffer)
 	rendering_device.free_rid(hash_prefix_sum_buffer)
 	rendering_device.free_rid(hash_index_tracker_buffer)
-	

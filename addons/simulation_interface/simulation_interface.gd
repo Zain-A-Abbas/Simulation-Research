@@ -16,6 +16,8 @@ class_name SimulationInterface
 @onready var hashes_spin_box: SpinBox = %HashesSpinBox
 @onready var spatial_hashes_toggle: CheckButton = %SpatialHashesToggle
 @onready var hash_settings_hbox: HBoxContainer = %HashSettingsHbox
+@onready var circle_simulation_options = %CircleSimulationOptions
+@onready var circle_radius_spinbox = %CircleRadiusSpinbox
 
 @onready var error_label: Label = %ErrorLabel
 
@@ -23,8 +25,11 @@ var config_file_location: String = RedBlackAgents.RED_BLACK_AGENTS_CONFIG_FILE
 const RED_BLACK_AGENTS_PATH: String = "res://Preliminary Simulation/red_black_agents.tscn"
 
 func _ready() -> void:
+	circle_simulation_options.visible = false
+	
 	start_button.pressed.connect(start_simulation)
 	spatial_hashes_toggle.toggled.connect(hash_settings_hbox.set_visible.bind())
+	scenario_option.item_selected.connect(set_scenario)
 	scenario_option.clear()
 	for scenario in RedBlackAgents.Scenarios.keys():
 		scenario_option.add_item(scenario)
@@ -48,6 +53,7 @@ func start_simulation():
 		"world_height": world_height_spin_box.value,
 		"use_hashes": spatial_hashes_toggle.button_pressed,
 		"hash_size": hashes_spin_box.value,
+		"circle_radius": circle_radius_spinbox.value
 	}
 	
 	var config_file: FileAccess = FileAccess.open(config_file_location, FileAccess.WRITE)
@@ -59,3 +65,10 @@ func set_error_text(text: String):
 	error_label.text = text
 	await get_tree().create_timer(2.0).timeout
 	error_label.text = ""
+
+func set_scenario(idx: int):
+	circle_simulation_options.visible = is_scenario(RedBlackAgents.Scenarios.CIRCLE_POSITION_EXCHANGE)
+
+func is_scenario(scenario: RedBlackAgents.Scenarios):
+	var scenario_text: String = scenario_option.get_item_text(scenario_option.selected)
+	return RedBlackAgents.Scenarios[scenario_text] == scenario
