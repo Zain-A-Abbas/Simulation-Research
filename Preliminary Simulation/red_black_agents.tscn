@@ -1,10 +1,11 @@
-[gd_scene load_steps=9 format=3 uid="uid://ca56nxvpxws5u"]
+[gd_scene load_steps=10 format=3 uid="uid://ca56nxvpxws5u"]
 
 [ext_resource type="Script" uid="uid://db1i01tuitgo1" path="res://Preliminary Simulation/red_black_agents.gd" id="1_8sook"]
 [ext_resource type="Texture2D" uid="uid://b37l6ubs03hr7" path="res://Preliminary Simulation/32x32.png" id="2_8sook"]
 [ext_resource type="Script" uid="uid://b5tomjrg561d4" path="res://Preliminary Simulation/hash_viewer.gd" id="2_mie0a"]
 [ext_resource type="Shader" uid="uid://dotxh30jv7r2f" path="res://Preliminary Simulation/red_black_agents_shader.gdshader" id="3_a4fjh"]
 [ext_resource type="Script" uid="uid://ctiw8jlsb8qgj" path="res://Preliminary Simulation/camera_2d.gd" id="5_a4fjh"]
+[ext_resource type="Script" uid="uid://c6kowtqamo1k" path="res://Preliminary Simulation/agent_generator.gd" id="6_h3wmb"]
 
 [sub_resource type="Texture2DRD" id="Texture2DRD_hejfd"]
 
@@ -94,3 +95,7 @@ text = "Save"
 anchor_mode = 0
 limit_smoothed = true
 script = ExtResource("5_a4fjh")
+
+[node name="AgentGenerator" type="Node" parent="."]
+unique_name_in_owner = true
+script = ExtResource("6_h3wmb")
