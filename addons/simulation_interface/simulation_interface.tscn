@@ -123,6 +123,31 @@ min_value = 1.0
 max_value = 10000.0
 value = 1024.0
 
+[node name="HBoxContainer6" type="HBoxContainer" parent="VBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainer/VBoxContainer/HBoxContainer6"]
+layout_mode = 2
+text = "World Width"
+
+[node name="WorldWidthSpinBox" type="SpinBox" parent="VBoxContainer/VBoxContainer/HBoxContainer6"]
+unique_name_in_owner = true
+layout_mode = 2
+min_value = 1.0
+max_value = 10000.0
+value = 1024.0
+
+[node name="Label2" type="Label" parent="VBoxContainer/VBoxContainer/HBoxContainer6"]
+layout_mode = 2
+text = "World Height"
+
+[node name="WorldHeightSpinBox" type="SpinBox" parent="VBoxContainer/VBoxContainer/HBoxContainer6"]
+unique_name_in_owner = true
+layout_mode = 2
+min_value = 1.0
+max_value = 10000.0
+value = 1024.0
+
 [node name="SpatialHashesToggle" type="CheckButton" parent="VBoxContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2

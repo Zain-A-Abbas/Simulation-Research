@@ -28,7 +28,7 @@ position = Vector2(567, 319)
 texture = ExtResource("2_8sook")
 lifetime = 10.0
 explosiveness = 1.0
-visibility_rect = Rect2(-100, -100, 8192, 8192)
+visibility_rect = Rect2(-512, -512, 8192, 8192)
 process_material = SubResource("ShaderMaterial_3owe0")
 
 [node name="HashViewer" type="Node2D" parent="."]

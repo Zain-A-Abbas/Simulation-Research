@@ -48,6 +48,9 @@ var max_velocity: float = 32.0
 ## Radius of each agent.
 var radius: float = 16.0
 
+## Size of the world-space
+var world_size: Vector2 = Vector2.ZERO
+
 ## Hash args
 var use_spatial_hash: bool = false
 var hash_count: int = 256
@@ -191,7 +194,8 @@ func import_config():
 	max_velocity = parameters["max_velocity"]
 	radius = parameters["radius"]
 	scenario = Scenarios[parameters["scenario"]]
-	get_tree().root.size = (Vector2i(parameters["window_x"], parameters["window_y"]))
+	get_tree().root.size = (Vector2i(parameters["window_width"], parameters["window_height"]))
+	world_size = Vector2(parameters["world_width"], parameters["world_height"])
 	
 	if parameters.has("use_hashes"):
 		use_spatial_hash = parameters["use_hashes"]
@@ -199,15 +203,16 @@ func import_config():
 	if use_spatial_hash:
 		hash_size = parameters["hash_size"]
 		hashes = Vector2i(
-			snappedf(get_tree().root.size.x / hash_size + 0.4, 1),
-			snappedf(get_tree().root.size.y / hash_size + 0.4, 1),
+			snappedf(world_size.x / hash_size + 0.4, 1),
+			snappedf(world_size.y / hash_size + 0.4, 1),
 		)
 		hash_count = hashes.x * hashes.y
-		hash_size
+		
 		
 		hash_viewer.h_hashes = hashes.x
 		hash_viewer.v_hashes = hashes.y
-		hash_viewer.queue_redraw()
+	hash_viewer.world_size = world_size
+	hash_viewer.queue_redraw()
 	
 	if parameters["save"] == true:
 		start_save()
@@ -239,7 +244,7 @@ func generate_agents():
 	if scenario == Scenarios.LONG_RANGE_CONSTRAINT:
 		count = agent_count
 		for agent in agent_count:
-			var starting_position: Vector2 = Vector2(rng.randf() * get_viewport_rect().size.x, rng.randf() * get_viewport_rect().size.y)
+			var starting_position: Vector2 = Vector2(rng.randf() * world_size.x, rng.randf() * world_size.y)
 			agent_positions.append(starting_position)
 			var starting_vel: Vector2 = Vector2(rng.randf_range(-1.0, 1.0) * max_velocity, rng.randf_range(-1.0, 1.0) * max_velocity)
 			agent_velocities.append(starting_vel)
@@ -335,33 +340,35 @@ func gpu_process(delta: float):
 	
 	var param_buffer_bytes: PackedByteArray = generate_parameter_buffer(delta, 0)
 	
-	
 	# Hash setup
 	if use_spatial_hash:
 		param_buffer_bytes = generate_parameter_buffer(delta, 0) 
 		rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
-		run_compute(hash_pipeline)
+		run_compute(hash_pipeline, maxi(count, hash_count))
 		param_buffer_bytes = generate_parameter_buffer(delta, 1) 
 		rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
-		run_compute(hash_pipeline)
+		run_compute(hash_pipeline, maxi(count, hash_count))
 		param_buffer_bytes = generate_parameter_buffer(delta, 2) 
 		rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
-		run_compute(hash_pipeline)
+		run_compute(hash_pipeline, maxi(count, hash_count))
 		param_buffer_bytes = generate_parameter_buffer(delta, 3) 
 		rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
-		run_compute(hash_pipeline)
+		run_compute(hash_pipeline, maxi(count, hash_count))
+		param_buffer_bytes = generate_parameter_buffer(delta, 4) 
+		rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
+		run_compute(hash_pipeline, maxi(count, hash_count))
 	
 	# First pass
 	param_buffer_bytes = generate_parameter_buffer(delta, 0)
 	rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
-	run_compute(agent_pipeline)
+	run_compute(agent_pipeline, maxi(count, hash_count))
 	
 	RenderingServer.force_sync() # May not be necessary
 	
 	# Second pass
 	param_buffer_bytes = generate_parameter_buffer(delta, 1)
 	rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
-	run_compute(agent_pipeline)
+	run_compute(agent_pipeline, maxi(count, hash_count))
 	
 	# Testing saving
 	#simulation_file.saved_floats.append(agent_data_1_texture_rd.get_image().get_data().to_float32_array())
@@ -372,8 +379,8 @@ func generate_parameter_buffer(delta: float, stage: float) -> PackedByteArray:
 	var floats: PackedFloat32Array = [
 		image_size,
 		count,
-		get_viewport_rect().size.x,
-		get_viewport_rect().size.y,
+		world_size.x,
+		world_size.y,
 		radius,
 		radius * radius * 1.05 * 1.05, #radius_squared
 		delta,
@@ -392,11 +399,12 @@ func generate_parameter_buffer(delta: float, stage: float) -> PackedByteArray:
 	return packed_data.to_byte_array()
 
 ## The compute processing that is called every frame.
-func run_compute(pipeline: RID):
+## num refers to the number of objects being operated on. 
+func run_compute(pipeline: RID, num: int):
 	var compute_list: int = rendering_device.compute_list_begin()
 	rendering_device.compute_list_bind_compute_pipeline(compute_list, pipeline)
 	rendering_device.compute_list_bind_uniform_set(compute_list, uniform_set, 0)
-	rendering_device.compute_list_dispatch(compute_list, ceil(count / 1024.), 1, 1)
+	rendering_device.compute_list_dispatch(compute_list, ceil(num / 1024.), 1, 1)
 	rendering_device.compute_list_end()
 
 ## Sets up the computer shader once.

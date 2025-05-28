@@ -15,4 +15,4 @@ func _input(event: InputEvent) -> void:
 			zoom -= Vector2(0.05, 0.05)
 	if event is InputEventMouseMotion:
 		if event.pressure:
-			offset -= event.relative
+			offset -= event.relative / zoom

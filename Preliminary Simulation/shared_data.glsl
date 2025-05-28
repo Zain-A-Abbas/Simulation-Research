@@ -29,8 +29,8 @@ layout(set = 0, binding = 4, std430) restrict buffer Color {
 layout(set = 0, binding = 5, std430) restrict buffer Params {
     float image_size; // 0 (Counting byte alignment)
     float agent_count; // 4
-    float screen_width; // 8
-    float screen_height; // 12
+    float world_width; // 8
+    float world_height; // 12
     float radius; // 0
     float radius_squared; // 4 
     float delta; // 8

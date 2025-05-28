@@ -26,9 +26,11 @@ void prefix_sum() {
     for (int i = 0; i <= idx; i++) {
         hash_prefix_sum.data[idx] += hash_sum.data[i];
     }
+}
 
-    barrier(); 
-    
+void prefix_sum_shift() {
+    int idx = int(gl_GlobalInvocationID.x);
+    if (idx >= hash_params.hash_count) return;
     // Shifting the array of each sum
     hash_index_tracker.data[idx] = 0;
     if (idx > 0) {
@@ -58,6 +60,9 @@ void main() {
         prefix_sum();
     }
     else if (params.stage == 3.0) {
+        prefix_sum_shift();
+    }
+    else if (params.stage == 4.0) {
         reindex();
     }
 }

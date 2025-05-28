@@ -104,7 +104,6 @@ void correctionsStage() {
     if (idx >= params.agent_count) {return;}
     delta_corrections.data[idx] = vec4(0.0);
 
-    
     if (params.use_spatial_hash > 0.0) {
         int agent_hash = hash.data[idx];
         vec2 hash_location = one_to_two(agent_hash, hash_params.hash_x);
@@ -150,10 +149,10 @@ void moveStage() {
     
     agent_pos.data[idx] += agent_vel.data[idx] * params.delta;
 
-    if (agent_pos.data[idx].x > params.screen_width) {agent_pos.data[idx].x -= params.screen_width;}
-    if (agent_pos.data[idx].y > params.screen_height) {agent_pos.data[idx].y -= params.screen_height;}
-    if (agent_pos.data[idx].x < 0) {agent_pos.data[idx].x += params.screen_width;}
-    if (agent_pos.data[idx].y < 0) {agent_pos.data[idx].y += params.screen_height;}
+    if (agent_pos.data[idx].x > params.world_width) {agent_pos.data[idx].x -= params.world_width;}
+    if (agent_pos.data[idx].y > params.world_height) {agent_pos.data[idx].y -= params.world_height;}
+    if (agent_pos.data[idx].x < 0) {agent_pos.data[idx].x += params.world_width;}
+    if (agent_pos.data[idx].y < 0) {agent_pos.data[idx].y += params.world_height;}
 
     // Turns this agent's index into x/y to find the corresponding pixel on the texture
     ivec2 pixel_coord = ivec2(

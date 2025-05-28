@@ -11,6 +11,8 @@ class_name SimulationInterface
 @onready var start_button: Button = %StartButton
 @onready var window_x_spin_box: SpinBox = %WindowXSpinBox
 @onready var window_y_spin_box: SpinBox = %WindowYSpinBox
+@onready var world_width_spin_box: SpinBox = %WorldWidthSpinBox
+@onready var world_height_spin_box: SpinBox = %WorldHeightSpinBox
 @onready var hashes_spin_box: SpinBox = %HashesSpinBox
 @onready var spatial_hashes_toggle: CheckButton = %SpatialHashesToggle
 @onready var hash_settings_hbox: HBoxContainer = %HashSettingsHbox
@@ -40,8 +42,10 @@ func start_simulation():
 		"scenario": scenario_option.get_item_text(scenario_option.selected),
 		"disable_rendering": rendering_check_box.button_pressed,
 		"save": save_check_box.button_pressed,
-		"window_x": window_x_spin_box.value,
-		"window_y": window_y_spin_box.value,
+		"window_width": window_x_spin_box.value,
+		"window_height": window_y_spin_box.value,
+		"world_width": world_width_spin_box.value,
+		"world_height": world_height_spin_box.value,
 		"use_hashes": spatial_hashes_toggle.button_pressed,
 		"hash_size": hashes_spin_box.value,
 	}
