@@ -1,7 +1,9 @@
 shader_type particles;
 
-// Stores position and color
+// Stores position and velocity
 uniform sampler2D agent_data;
+// Stores color flags
+uniform sampler2D agent_data_2;
 
 uniform float radius = 1.0;
 
@@ -37,5 +39,7 @@ void process() {
 	// Translation
 	TRANSFORM[3].xy = vec2(agent_params.r, agent_params.g);
 
-	//COLOR = vec4(1.0);
+	vec4 agent_params_2 = texelFetch(agent_data_2, texel_pos, 0);
+
+	COLOR.r = agent_params_2.r == 1.0 ? 0.0 : 1.0;
 }

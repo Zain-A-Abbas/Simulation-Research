@@ -11,7 +11,7 @@ func long_range_constraint(red_black_agents: RedBlackAgents):
 		red_black_agents.agent_preferred_velocities.append(starting_vel)
 		red_black_agents.delta_corrections.append(Vector4.ZERO)
 		red_black_agents.locomotion_targets.append(Vector2.ZERO)
-		red_black_agents.agent_colors.append(1 if red_black_agents.rng.randf() > 0.5 else 0)
+		red_black_agents.agent_tracked.append(false)
 		red_black_agents.agent_inv_mass.append(red_black_agents.rng.randf_range(0.2, 0.4)) # Unsure as of yet if this range is correct. 
 		#agent_radii.append(radius)
 
@@ -35,7 +35,7 @@ func opposing_agents(red_black_agents: RedBlackAgents):
 		Vector4.ZERO
 		])
 	red_black_agents.locomotion_targets.append_array([Vector2.ZERO, Vector2.ZERO])
-	red_black_agents.agent_colors.append_array([1, 0])
+	red_black_agents.agent_tracked.append_array([false, false])
 	red_black_agents.agent_inv_mass.append_array([
 		0.2,
 		0.2
@@ -65,7 +65,7 @@ func opposing_groups(red_black_agents: RedBlackAgents, small: bool):
 				red_black_agents.agent_preferred_velocities.append(group_velocities[z])
 				red_black_agents.delta_corrections.append(Vector4.ZERO)
 				red_black_agents.locomotion_targets.append(Vector2.ZERO)
-				red_black_agents.agent_colors.append(1)
+				red_black_agents.agent_tracked.append(false)
 				red_black_agents.agent_inv_mass.append(0.5)
 
 func circle_position_exchange(red_black_agents: RedBlackAgents):
@@ -95,7 +95,7 @@ func circle_position_exchange(red_black_agents: RedBlackAgents):
 		red_black_agents.agent_velocities.append(starting_vel)
 		red_black_agents.agent_preferred_velocities.append(starting_vel)
 		red_black_agents.delta_corrections.append(Vector4.ZERO)
-		red_black_agents.agent_colors.append(1 if red_black_agents.rng.randf() > 0.5 else 0)
+		red_black_agents.agent_tracked.append(false)
 		red_black_agents.agent_inv_mass.append(red_black_agents.rng.randf_range(0.2, 0.4)) # Unsure as of yet if this range is correct. 
 		
 		
@@ -106,7 +106,7 @@ func generate_agents(red_black_agents: RedBlackAgents):
 	red_black_agents.agent_velocities.clear()
 	red_black_agents.agent_preferred_velocities.clear()
 	red_black_agents.delta_corrections.clear()
-	red_black_agents.agent_colors.clear()
+	red_black_agents.agent_tracked.clear()
 	red_black_agents.agent_inv_mass.clear()
 	
 	match red_black_agents.scenario:

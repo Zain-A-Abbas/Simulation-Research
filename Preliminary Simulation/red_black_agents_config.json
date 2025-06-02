@@ -1,1 +1,9 @@
-{"agent_count":101.0,"max_velocity":10.0,"radius":16,"scenario":"LONG_RANGE_CONSTRAINT","window_x":1920,"window_y":1080}
+{
+	"agent_count":101.0
+	,"max_velocity":10.0,
+	"radius":16,
+	"scenario":
+	"LONG_RANGE_CONSTRAINT",
+	"window_x":1920,
+	"window_y":1080
+}

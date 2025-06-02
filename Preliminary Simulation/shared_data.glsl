@@ -21,16 +21,21 @@ layout (set = 0, binding = 4, std430) restrict buffer LocomotionTarget {
     vec2 data[];
 } locomotion_targets;
 
-layout(set = 0, binding = 5, std430) restrict buffer Color {
-    int data[];
-} agent_color;
+// If "true" then this agent is close enough to the currently selected agent (and in its spatial hash) for showing a different color
+layout(set = 0, binding = 5, std430) restrict buffer Tracked {
+    bool data[];
+} agent_tracked;
 
-/*layout(set = 0, binding = 6, std430) restrict buffer Radius {
-    float data[];
-} agent_radius;*/
+// Stores information used in the debugging process.
+layout(set = 0, binding = 6, std430) restrict buffer DebuggingData {
+    float tracked_idx; // Stores the idx of an agent being "tracked" by clicking on it. As it's a float this will only be accurate up until 16,777,216 which should be fine
+    float padding; // unused as of yet
+    float padding_2; // unused as of yet
+    float padding_3; // unused as of yet
+} debugging_data;
 
 // Parameters that are exposed/decided on the CPU-side. Stores data typically not expected to be changed once it reaches the GPU.
-layout(set = 0, binding = 6, std430) restrict buffer Params {
+layout(set = 0, binding = 7, std430) restrict buffer Params {
     float image_size; // 0 (Counting byte alignment)
     float agent_count; // 4
     float world_width; // 8
@@ -41,8 +46,8 @@ layout(set = 0, binding = 6, std430) restrict buffer Params {
     float stage; // 12
     float use_spatial_hash; // 0
     float use_locomotion_targets; // 4 
-    float padding_1; // 8 
-    float padding_2; // 12 
+    float click_x; // 8
+    float click_y; // 12
     float inv_mass[]; // 0
 } params;
 
@@ -79,7 +84,18 @@ layout(set = 1, binding = 5, std430) restrict buffer ReindexHashPositions {
 
 // The textures here are each used to pass the image back to the engine, as passing the shader data directly to a texture keeps everything
 // on the GPU without having to pass it back over to CPU memory
+
+// Stores position and velocity
 layout(rgba32f, set = 2, binding = 0) uniform image2D agent_data;
+
+// Stores data used for rendering debug data such as viewing which agents are colliding with others
+// r - "This agent is being tracked" flag
+// g - "In range of currently tracked" flag
+// b - 
+// a - 
+layout(rgba32f, set = 3, binding = 0) uniform image2D agent_data_2;
+
+
 
 ivec2 one_to_two(int index, int grid_width) {
     int row = int(index / grid_width);
