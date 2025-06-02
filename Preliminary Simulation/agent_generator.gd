@@ -55,7 +55,10 @@ func opposing_groups(red_black_agents: RedBlackAgents, small: bool):
 		rows = sqrt(agents_per_group) * 2
 	
 	var agent_gap: Vector2 = Vector2(red_black_agents.radius * 1.25, red_black_agents.radius * 1.25)
-	var group_positions: Array[Vector2] = [Vector2(100, 200), Vector2(100 + 1.5 * agents_per_row * agent_gap.x, 200 + red_black_agents.radius / 2.0)]
+	var group_positions: Array[Vector2] = [
+		Vector2(100, 200),
+		Vector2(100 + agents_per_row * agent_gap.x + red_black_agents.parameters["opposing_groups_x_distance"], 200 + red_black_agents.parameters["opposing_groups_y_offset"])
+		]
 	var group_velocities: Array[Vector2] = [Vector2(red_black_agents.max_velocity, 0), Vector2(-red_black_agents.max_velocity, 0)]
 	for z in 2:
 		for row in rows:

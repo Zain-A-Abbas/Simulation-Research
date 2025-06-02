@@ -70,6 +70,33 @@ popup/item_3/id = 3
 popup/item_4/text = "CIRCLE_POSITION_EXCHANGE"
 popup/item_4/id = 4
 
+[node name="OpposingAgentsOptions" type="HBoxContainer" parent="VBoxContainer/VBoxContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainer/VBoxContainer/OpposingAgentsOptions"]
+layout_mode = 2
+text = "X Distance (from opposing edges)"
+
+[node name="OpposingDistanceSpinboxX" type="SpinBox" parent="VBoxContainer/VBoxContainer/OpposingAgentsOptions"]
+unique_name_in_owner = true
+layout_mode = 2
+max_value = 1.67772e+07
+value = 100.0
+rounded = true
+
+[node name="Label2" type="Label" parent="VBoxContainer/VBoxContainer/OpposingAgentsOptions"]
+layout_mode = 2
+text = "Y Offset"
+
+[node name="OpposingDistanceSpinboxY" type="SpinBox" parent="VBoxContainer/VBoxContainer/OpposingAgentsOptions"]
+unique_name_in_owner = true
+layout_mode = 2
+max_value = 1.67772e+07
+value = 4.0
+rounded = true
+
 [node name="CircleSimulationOptions" type="HBoxContainer" parent="VBoxContainer/VBoxContainer"]
 unique_name_in_owner = true
 visible = false

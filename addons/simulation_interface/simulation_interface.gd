@@ -18,6 +18,9 @@ class_name SimulationInterface
 @onready var hash_settings_hbox: HBoxContainer = %HashSettingsHbox
 @onready var circle_simulation_options = %CircleSimulationOptions
 @onready var circle_radius_spinbox = %CircleRadiusSpinbox
+@onready var opposing_agents_options = %OpposingAgentsOptions
+@onready var opposing_distance_spinbox_x = %OpposingDistanceSpinboxX
+@onready var opposing_distance_spinbox_y = %OpposingDistanceSpinboxY
 
 @onready var error_label: Label = %ErrorLabel
 
@@ -53,7 +56,9 @@ func start_simulation():
 		"world_height": world_height_spin_box.value,
 		"use_hashes": spatial_hashes_toggle.button_pressed,
 		"hash_size": hashes_spin_box.value,
-		"circle_radius": circle_radius_spinbox.value
+		"circle_radius": circle_radius_spinbox.value,
+		"opposing_groups_x_distance": opposing_distance_spinbox_x.value,
+		"opposing_groups_y_offset": opposing_distance_spinbox_y.value
 	}
 	
 	var config_file: FileAccess = FileAccess.open(config_file_location, FileAccess.WRITE)
@@ -68,6 +73,7 @@ func set_error_text(text: String):
 
 func set_scenario(idx: int):
 	circle_simulation_options.visible = is_scenario(RedBlackAgents.Scenarios.CIRCLE_POSITION_EXCHANGE)
+	opposing_agents_options.visible = is_scenario(RedBlackAgents.Scenarios.OPPOSING_SMALL_GROUPS) || is_scenario(RedBlackAgents.Scenarios.OPPOSING_LARGE_GROUPS)
 
 func is_scenario(scenario: RedBlackAgents.Scenarios):
 	var scenario_text: String = scenario_option.get_item_text(scenario_option.selected)
