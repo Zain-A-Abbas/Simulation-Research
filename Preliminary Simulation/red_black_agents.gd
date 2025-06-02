@@ -87,7 +87,7 @@ var locomotion_targets: PackedVector2Array = []
 var use_locomotion_targets: bool = false
 
 ## If "true" then this agent is close enough to the currently selected agent (and in its spatial hash) for tracking
-var agent_tracked: PackedByteArray = []
+var agent_tracked: PackedFloat32Array = []
 
 ## The inverted mass of each agent.
 var agent_inv_mass: PackedFloat32Array = []
@@ -390,7 +390,7 @@ func setup_compute():
 	locomotion_targets_buffer = generate_packed_array_buffer(locomotion_targets)
 	var locomotion_targets_uniform: RDUniform = generate_compute_uniform(locomotion_targets_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 4)
 	
-	agent_tracked_buffer = rendering_device.storage_buffer_create(agent_tracked.size(), agent_tracked)
+	agent_tracked_buffer = generate_packed_array_buffer(agent_tracked)
 	var agent_tracked_uniform: RDUniform = generate_compute_uniform(agent_tracked_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 5)
 	
 	var debugging_data: PackedFloat32Array = [0.0, 0.0, 0.0, 0.0]

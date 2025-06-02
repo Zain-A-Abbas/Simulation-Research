@@ -58,6 +58,10 @@ void longRangeConstraint(int i, int j) {
     const float tao = (b - d) / a;
     float lengthV;
     if (d_sq > 0.0 && abs(a) > EPSILON && tao > 0 && tao < C_TAO_MAX){
+        if (j == debugging_data.tracked_idx) {
+            agent_tracked.data[i] = 1.0;
+        }
+
         const float clamp_tao = exp(-tao * tao / C_TAO_0);
         const float c_tao = clamp_tao;
         const float tao_sq = c_tao * c_tao;
@@ -118,6 +122,9 @@ vec2 rotate_velocity(int idx) {
 void correctionsStage() {
     int idx = int(gl_GlobalInvocationID.x);
     if (idx >= params.agent_count) {return;}
+
+    agent_tracked.data[idx] = 0.0;
+
     delta_corrections.data[idx] = vec4(0.0);
 
     if (params.use_spatial_hash > 0.0) {
@@ -157,8 +164,7 @@ void moveStage() {
     int idx = int(gl_GlobalInvocationID.x);
     if (idx >= params.agent_count) {return;}
 
-    agent_tracked.data[idx] = false;
-
+    
     if (delta_corrections.data[idx].z > 0.0) {
         agent_vel.data[idx] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
     }
@@ -196,12 +202,13 @@ void moveStage() {
 
     if ( length(vec2(params.click_x, params.click_y)) > 0.01) {
         if (distance(vec2(params.click_x, params.click_y), agent_pos.data[idx]) < params.radius) {
-            debugging_data.data[0] = idx;
+            debugging_data.tracked_idx = idx;
         }
     }
 
     imageStore(agent_data, pixel_coord, vec4(agent_pos.data[idx].x, agent_pos.data[idx].y, agent_vel.data[idx].x, agent_vel.data[idx].y));
-    imageStore(agent_data_2, pixel_coord, vec4(float(debugging_data.data[0] == idx), 0.0, 0.0, 0.0));
+    imageStore(agent_data_2, pixel_coord, vec4(float(debugging_data.tracked_idx == idx), agent_tracked.data[idx], 0.0, 0.0));
+    
 }
 
 void main() {

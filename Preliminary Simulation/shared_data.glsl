@@ -23,12 +23,12 @@ layout (set = 0, binding = 4, std430) restrict buffer LocomotionTarget {
 
 // If "true" then this agent is close enough to the currently selected agent (and in its spatial hash) for showing a different color
 layout(set = 0, binding = 5, std430) restrict buffer Tracked {
-    bool data[];
+    float data[];
 } agent_tracked;
 
 // Stores information used in the debugging process.
 layout(set = 0, binding = 6, std430) restrict buffer DebuggingData {
-    float tracked_idx; // Stores the idx of an agent being "tracked" by clicking on it. As it's a float this will only be accurate up until 16,777,216 which should be fine
+    int tracked_idx; // Stores the idx of an agent being "tracked" by clicking on it. As it's a float this will only be accurate up until 16,777,216 which should be fine
     float padding; // unused as of yet
     float padding_2; // unused as of yet
     float padding_3; // unused as of yet

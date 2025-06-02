@@ -38,8 +38,18 @@ void process() {
 
 	// Translation
 	TRANSFORM[3].xy = vec2(agent_params.r, agent_params.g);
-
 	vec4 agent_params_2 = texelFetch(agent_data_2, texel_pos, 0);
-
-	COLOR.r = agent_params_2.r == 1.0 ? 0.0 : 1.0;
+	
+	if (agent_params_2.r > 0.0) {
+		COLOR.b = 4.0;
+	} else if (agent_params_2.g > 0.0) {
+		COLOR.g = 4.0;
+	} 
+	else {
+		COLOR.rgb = vec3(1.0);
+	}
+	
+	//COLOR.r = agent_params_2.r == 1.0 ? 0.0 : 1.0;
+	
+	//COLOR.g = agent_params_2.g == 1.0 ? 0.0 : 1.0;
 }
