@@ -48,6 +48,10 @@ layout(set = 0, binding = 7, std430) restrict buffer Params {
     float use_locomotion_targets; // 4 
     float click_x; // 8
     float click_y; // 12
+    float neighbour_radius; // 0
+    float padding; // 4
+    float padding_2; // 8
+    float padding_3; // 12
     float inv_mass[]; // 0
 } params;
 

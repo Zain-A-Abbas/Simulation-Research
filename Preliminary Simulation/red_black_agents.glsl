@@ -16,6 +16,14 @@ float random(uvec3 st) {
     return fract(sin(dot(st.xy ,vec2(12.9898,78.233))) * 43758.5453123);
 }
 
+void highlightAgent(int i, int j) {
+    if (j == debugging_data.tracked_idx) {
+        if (distance(agent_pos.data[i], agent_pos.data[j]) < params.neighbour_radius) {
+            agent_tracked.data[i] = 1.0;
+        }   
+    }
+}
+
 vec2 clamp2D(float vx, float vy, float maxValue) {
   const float lengthV = sqrt(vx * vx + vy * vy);
   if (lengthV > maxValue) {
@@ -58,9 +66,7 @@ void longRangeConstraint(int i, int j) {
     const float tao = (b - d) / a;
     float lengthV;
     if (d_sq > 0.0 && abs(a) > EPSILON && tao > 0 && tao < C_TAO_MAX){
-        if (j == debugging_data.tracked_idx) {
-            agent_tracked.data[i] = 1.0;
-        }
+        
 
         const float clamp_tao = exp(-tao * tao / C_TAO_0);
         const float c_tao = clamp_tao;
@@ -146,6 +152,9 @@ void correctionsStage() {
                 for (int i = hash_prefix_sum.data[hash_index - 1]; i < hash_prefix_sum.data[hash_index]; i++) {
                     int other_agent = hash_reindex.data[i];
                     if (other_agent == idx) continue;
+
+                    highlightAgent(idx, other_agent);
+
                     longRangeConstraint(idx, other_agent);
                 } 
             }
@@ -154,6 +163,7 @@ void correctionsStage() {
     else {
         for (int j = 0; j < params.agent_count; j++) {
             if (j == idx) {continue;}
+            highlightAgent(idx, j);
             longRangeConstraint(idx, j);
         }
     }

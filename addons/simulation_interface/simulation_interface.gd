@@ -21,6 +21,7 @@ class_name SimulationInterface
 @onready var opposing_agents_options = %OpposingAgentsOptions
 @onready var opposing_distance_spinbox_x = %OpposingDistanceSpinboxX
 @onready var opposing_distance_spinbox_y = %OpposingDistanceSpinboxY
+@onready var neighbour_radius_spin_box: SpinBox = %NeighbourRadiusSpinBox
 
 @onready var error_label: Label = %ErrorLabel
 
@@ -56,6 +57,7 @@ func start_simulation():
 		"world_height": world_height_spin_box.value,
 		"use_hashes": spatial_hashes_toggle.button_pressed,
 		"hash_size": hashes_spin_box.value,
+		"neighbour_radius": neighbour_radius_spin_box.value,
 		"circle_radius": circle_radius_spinbox.value,
 		"opposing_groups_x_distance": opposing_distance_spinbox_x.value,
 		"opposing_groups_y_offset": opposing_distance_spinbox_y.value

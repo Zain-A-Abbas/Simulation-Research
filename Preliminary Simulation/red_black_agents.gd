@@ -334,7 +334,11 @@ func generate_parameter_buffer(delta: float, stage: float) -> PackedByteArray:
 		float(use_spatial_hash),
 		float(use_locomotion_targets),
 		click_location.x,
-		click_location.y
+		click_location.y,
+		parameters["neighbour_radius"],
+		0.0, # Padding
+		0.0, # Padding
+		0.0  # Padding
 	]
 	
 	# append_array must be used when including an additional array in parameter data

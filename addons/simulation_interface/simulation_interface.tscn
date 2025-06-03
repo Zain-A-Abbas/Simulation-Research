@@ -144,6 +144,21 @@ max_value = 64.0
 value = 16.0
 rounded = true
 
+[node name="HBoxContainer7" type="HBoxContainer" parent="VBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainer/VBoxContainer/HBoxContainer7"]
+layout_mode = 2
+text = "Neighbour Visualization Radius"
+
+[node name="NeighbourRadiusSpinBox" type="SpinBox" parent="VBoxContainer/VBoxContainer/HBoxContainer7"]
+unique_name_in_owner = true
+layout_mode = 2
+min_value = 8.0
+max_value = 1.04858e+06
+value = 128.0
+rounded = true
+
 [node name="HBoxContainer5" type="HBoxContainer" parent="VBoxContainer/VBoxContainer"]
 layout_mode = 2
 

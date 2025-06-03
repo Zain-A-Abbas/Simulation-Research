@@ -40,10 +40,11 @@ void process() {
 	TRANSFORM[3].xy = vec2(agent_params.r, agent_params.g);
 	vec4 agent_params_2 = texelFetch(agent_data_2, texel_pos, 0);
 	
-	if (agent_params_2.r > 0.0) {
-		COLOR.b = 4.0;
-	} else if (agent_params_2.g > 0.0) {
-		COLOR.g = 4.0;
+	if (agent_params_2.r > 0.5) {
+		COLOR.rgb = vec3(1.0, 1.0, 4.0);
+	} else if (agent_params_2.g > 0.5) {
+		
+		COLOR.rgb = vec3(1.0, 4.0, 1.0);
 	} 
 	else {
 		COLOR.rgb = vec3(1.0);
