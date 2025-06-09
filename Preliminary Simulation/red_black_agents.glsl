@@ -34,79 +34,104 @@ vec2 clamp2D(float vx, float vy, float maxValue) {
   return vec2(vx, vy);
 }
 
+vec4 shortRangeConstraint(int i, int j) {
+    vec2 ip = agent_pos.data[i] + agent_vel.data[i] * params.delta;
+    vec2 jp = agent_pos.data[j] + agent_vel.data[j] * params.delta;
+    const float dist = distance(ip, jp);
+    const float overlap = dist - 2*params.radius;
+    if (overlap  < 0.0){
+        vec2 grad_i = ip - jp;
+        const vec2 grad_i_v = -grad_i / dist;
+        
+        return vec4(overlap * grad_i_v.x, overlap * grad_i_v.y, 1.0, 0.0);
+        
+        /*delta_corrections.data[i].x += 0.5 * overlap * grad_x_i;
+        delta_corrections.data[i].y += 0.5 * overlap * grad_y_i;
+        delta_corrections.data[i].z += 1.0;
+        delta_corrections.data[j].x += 0.5 * overlap * grad_x_j;
+        delta_corrections.data[j].y += 0.5 * overlap * grad_x_j;
+        delta_corrections.data[j].z += 1.0;*/
+    }
+    return vec4(0.0);
+}
+
+shared vec4 new_corrections[1024];
 
 // From the original function, x and z (y here) are presumably the starting positions, while px and pz (py here) are the positions
 // after adding the velocity and deltas.
 // To keep the same functionality, px/py are computed on the spot here.
-void longRangeConstraint(int i, int j) {
+vec4 longRangeConstraint(int i, int j) {
 
     vec2 ip = agent_pos.data[i] + agent_vel.data[i] * params.delta;
     vec2 jp = agent_pos.data[j] + agent_vel.data[j] * params.delta;
-    
+    const vec2 pos_delta = agent_pos.data[i] - agent_pos.data[j];
+    const float delta_inv = 1.0 / params.delta;
     
     const float dist = distance(agent_pos.data[i], agent_pos.data[j]);
-    float radius_sq = params.radius_squared;
-    if (params.radius > dist) {
-        radius_sq = pow((params.radius - dist), 2.0);    
-    }
-    const float v_x = (ip.x - agent_pos.data[i].x) / params.delta - (jp.x - agent_pos.data[j].x) / params.delta;
-    const float v_y = (ip.y - agent_pos.data[i].y) / params.delta - (jp.y - agent_pos.data[j].y) / params.delta;
+
+
+    float radius_sq = params.radius > dist ? (params.radius - dist) : params.radius_squared;
+    
+    const vec2 v_i = (ip - agent_pos.data[i]) * delta_inv;
+    const vec2 v_j = (jp - agent_pos.data[j]) * delta_inv;
+    const vec2 v_rel = v_i - v_j;
+
+    const float v_x = (ip.x - agent_pos.data[i].x) * delta_inv - (jp.x - agent_pos.data[j].x) * delta_inv;
+    const float v_y = (ip.y - agent_pos.data[i].y) * delta_inv - (jp.y - agent_pos.data[j].y) * delta_inv;
+    //const float v_d = v_x
+
     const float x0 = agent_pos.data[i].x - agent_pos.data[j].x; 
     const float y0 = agent_pos.data[i].y - agent_pos.data[j].y; 
-    const float v_sq = v_x * v_x + v_y * v_y;
+    const float v_sq = dot(v_rel, v_rel);
     const float x0_sq = x0 * x0;
     const float y0_sq = y0 * y0;
     const float x_sq = x0_sq + y0_sq; 
-    const float a = v_sq;
-    const float b = -v_x * x0 - v_y * y0;   // b = -1 * v_.dot(x0_).  Have to check this. 
-    const float b_sq = b * b;
+    const float b = -dot(v_rel, pos_delta);   // b = -1 * v_.dot(x0_).  Have to check this. 
     const float c = x_sq - radius_sq;
-    const float d_sq = b_sq - a * c;
+    const float d_sq = b * b - v_sq * c;
     const float d = sqrt(d_sq);
-    const float tao = (b - d) / a;
-    float lengthV;
-    if (d_sq > 0.0 && abs(a) > EPSILON && tao > 0 && tao < C_TAO_MAX){
+    const float tao = (b - d) / v_sq;
+    if (d_sq > 0.0 && abs(v_sq) > EPSILON && tao > 0 && tao < C_TAO_MAX){
         
 
         const float clamp_tao = exp(-tao * tao / C_TAO_0);
         const float c_tao = clamp_tao;
         const float tao_sq = c_tao * c_tao;
-        const float grad_x_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_x * tao) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d)));
-        const float grad_y_i = 2 * c_tao * ((dv_i / a) * ((-2. * v_y * tao) - (y0 + (v_x * x0 * y0 + v_y * (radius_sq - x0_sq)) / d)));
-        const float grad_x_j = -grad_x_i;
-        const float grad_y_j = -grad_y_i;
-        const float stiff =C_LONG_RANGE_STIFF * exp(-tao * tao / C_TAO_0);    //changed
-        const float s =  stiff * tao_sq / (params.inv_mass[i] * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) + params.inv_mass[j]  * (grad_y_j * grad_y_j + grad_x_j * grad_x_j));     //changed
+
+        const float grad_x_i = 2 * c_tao * (
+            (dv_i / v_sq) * (
+                (-2.0 * v_x * tao) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d)
+                ))
+            ;
+        const float grad_y_i = 2 * c_tao * ((dv_i / v_sq) * ((-2. * v_y * tao) - (y0 + (v_x * x0 * y0 + v_y * (radius_sq - x0_sq)) / d)));
 
 
-        lengthV = sqrt(s * params.inv_mass[i] * grad_x_i * s * params.inv_mass[i] * grad_x_i 
-                            + s * params.inv_mass[i] * grad_y_i * s * params.inv_mass[i] * grad_y_i);
+        const float stiff = C_LONG_RANGE_STIFF * exp(-tao_sq / C_TAO_0);    //changed
+        const float s =  stiff * tao_sq / (INV_MASS * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) * 2);     //changed
+
+
+        //float lengthV = sqrt(s * INV_MASS * grad_x_i * s * INV_MASS * grad_x_i 
+          //                  + s * INV_MASS * grad_y_i * s * INV_MASS * grad_y_i);
 
         vec2 delta_correction_i = clamp2D(
-            s * params.inv_mass[i] * grad_x_i,
-            s * params.inv_mass[i] * grad_y_i,
+            s * INV_MASS * grad_x_i,
+            s * INV_MASS * grad_y_i,
             MAX_DELTA
-            );          
-                                    
-        vec2 delta_correction_j = clamp2D(
-            s * params.inv_mass[j] * grad_x_j,
-            s * params.inv_mass[j] * grad_y_j,
-            MAX_DELTA
-            ); 
+            );                  
 
-        delta_corrections.data[i].x += delta_correction_i.x;
+
+        return vec4(delta_correction_i.x, delta_correction_i.y, 1.0, 0.0);
+
+        /*delta_corrections.data[i].x += delta_correction_i.x;
         delta_corrections.data[i].y += delta_correction_i.y;
         delta_corrections.data[i].z += 1.0;
 
         delta_corrections.data[j].x += delta_correction_j.x;
         delta_corrections.data[j].y += delta_correction_j.y;
-        delta_corrections.data[j].z += 1.0;
+        delta_corrections.data[j].z += 1.0;*/
 
-        /*agent_pos.data[i].x += delta_correction_i.x;
-        agent_pos.data[i].y += delta_correction_i.y;
-        agent_pos.data[j].x += delta_correction_j.x;
-        agent_pos.data[j].y += delta_correction_j.y;*/
     }
+    return vec4(0.0);
 }
 
 vec2 rotate_velocity(int idx) {
@@ -129,9 +154,11 @@ void correctionsStage() {
     int idx = int(gl_GlobalInvocationID.x);
     if (idx >= params.agent_count) {return;}
 
+    int local_idx = int(gl_LocalInvocationID.x);
+
     agent_tracked.data[idx] = 0.0;
 
-    delta_corrections.data[idx] = vec4(0.0);
+    vec4 local_corrections = vec4(0.0);
 
     if (params.use_spatial_hash > 0.0) {
         int agent_hash = hash.data[idx];
@@ -148,6 +175,7 @@ void correctionsStage() {
                 if (current_hash.x < 0 || current_hash.x > hash_params.hash_x) continue;
 
                 int hash_index = two_to_one(current_hash, hash_params.hash_x);
+                if (hash_index == 0) {continue;}
 
                 for (int i = hash_prefix_sum.data[hash_index - 1]; i < hash_prefix_sum.data[hash_index]; i++) {
                     int other_agent = hash_reindex.data[i];
@@ -155,7 +183,8 @@ void correctionsStage() {
 
                     highlightAgent(idx, other_agent);
 
-                    longRangeConstraint(idx, other_agent);
+                    local_corrections += shortRangeConstraint(idx, other_agent);
+                    //local_corrections += longRangeConstraint(idx, other_agent);
                 } 
             }
         }
@@ -164,9 +193,12 @@ void correctionsStage() {
         for (int j = 0; j < params.agent_count; j++) {
             if (j == idx) {continue;}
             highlightAgent(idx, j);
-            longRangeConstraint(idx, j);
+            local_corrections += longRangeConstraint(idx, j);
         }
     }
+
+    //new_corrections[local_idx] = local_corrections;
+    delta_corrections.data[idx] = local_corrections;
 
 }
 
@@ -174,7 +206,12 @@ void moveStage() {
     int idx = int(gl_GlobalInvocationID.x);
     if (idx >= params.agent_count) {return;}
 
-    
+    int local_idx = int(gl_LocalInvocationID.x);
+
+    /*if (new_corrections[local_idx].z > 0.0) {
+        agent_vel.data[idx] += new_corrections[local_idx].xy / new_corrections[local_idx].z;
+    }*/
+
     if (delta_corrections.data[idx].z > 0.0) {
         agent_vel.data[idx] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
     }

@@ -32,25 +32,25 @@ void process() {
 	TRANSFORM[1].y = cos(dir);
 
 	// Scale
-	float texture_radius = (radius / 32.0);
+	float texture_radius = (radius / 16.0);
 	TRANSFORM[0] *= texture_radius;
 	TRANSFORM[1] *= texture_radius;
 
 	// Translation
 	TRANSFORM[3].xy = vec2(agent_params.r, agent_params.g);
 	vec4 agent_params_2 = texelFetch(agent_data_2, texel_pos, 0);
-	
+
 	if (agent_params_2.r > 0.5) {
 		COLOR.rgb = vec3(1.0, 1.0, 4.0);
 	} else if (agent_params_2.g > 0.5) {
-		
+
 		COLOR.rgb = vec3(1.0, 4.0, 1.0);
-	} 
+	}
 	else {
 		COLOR.rgb = vec3(1.0);
 	}
-	
+
 	//COLOR.r = agent_params_2.r == 1.0 ? 0.0 : 1.0;
-	
+
 	//COLOR.g = agent_params_2.g == 1.0 ? 0.0 : 1.0;
 }

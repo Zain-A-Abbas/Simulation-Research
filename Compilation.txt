@@ -1,0 +1,5 @@
+glslc -fshader-stage=compute "C:\Users\Zain\Documents\GitHub\Simlutation-Test\Preliminary Simulation\red_black_agents.glsl" -o "C:\Users\Zain\Desktop\temp\red_black_agents.spv"
+
+spirv-opt -O "C:\Users\Zain\Desktop\temp\red_black_agents.spv" -o "C:\Users\Zain\Desktop\temp\optimized.spv"
+
+spirv-cross "C:\Users\Zain\Desktop\temp\optimized.spv" --version 450 --output "C:\Users\Zain\Desktop\temp\optimized.glsl"

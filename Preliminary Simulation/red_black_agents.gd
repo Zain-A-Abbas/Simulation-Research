@@ -284,10 +284,14 @@ func gpu_process(delta: float):
 	if delta > 0:
 		frame += 1
 	
+	#var time_before: float = Time.get_ticks_msec() / 1000.0
 	var param_buffer_bytes: PackedByteArray = []
 	
 	# Hash setup
 	if use_spatial_hash:
+		
+		var hashing_start: float = Time.get_ticks_msec() / 1000.0
+		
 		param_buffer_bytes = generate_parameter_buffer(delta, 0) 
 		rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
 		run_compute(hash_pipeline, maxi(count, hash_count))
@@ -303,6 +307,10 @@ func gpu_process(delta: float):
 		param_buffer_bytes = generate_parameter_buffer(delta, 4) 
 		rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
 		run_compute(hash_pipeline, maxi(count, hash_count))
+		
+		print("Time: " + str(Time.get_ticks_msec() / 1000.0 - hashing_start))
+	
+	#print("Finished hashing")
 	
 	# First pass
 	param_buffer_bytes = generate_parameter_buffer(delta, 0)
@@ -315,6 +323,8 @@ func gpu_process(delta: float):
 	param_buffer_bytes = generate_parameter_buffer(delta, 1)
 	rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
 	run_compute(agent_pipeline, maxi(count, hash_count))
+	
+	#print("Time taken: " + str(Time.get_ticks_msec() / 1000.0 - time_before))
 	
 	# Testing saving
 	#simulation_file.saved_floats.append(agent_data_1_texture_rd.get_image().get_data().to_float32_array())
@@ -336,15 +346,13 @@ func generate_parameter_buffer(delta: float, stage: float) -> PackedByteArray:
 		click_location.x,
 		click_location.y,
 		parameters["neighbour_radius"],
-		0.0, # Padding
-		0.0, # Padding
-		0.0  # Padding
 	]
 	
 	# append_array must be used when including an additional array in parameter data
 	var packed_data: PackedFloat32Array = []
 	packed_data.append_array(floats)
-	packed_data.append_array(agent_inv_mass)
+	
+	#packed_data.append_array(agent_inv_mass)
 	
 	return packed_data.to_byte_array()
 

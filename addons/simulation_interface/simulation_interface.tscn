@@ -41,6 +41,7 @@ text = "Agent Count"
 
 [node name="AgentCountSpinBox" type="SpinBox" parent="VBoxContainer/VBoxContainer/HBoxContainer"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(128, 0)
 layout_mode = 2
 min_value = 1.0
 max_value = 1.04858e+06
@@ -195,7 +196,7 @@ text = "World Width"
 unique_name_in_owner = true
 layout_mode = 2
 min_value = 1.0
-max_value = 65536.0
+max_value = 131072.0
 value = 1024.0
 
 [node name="Label2" type="Label" parent="VBoxContainer/VBoxContainer/HBoxContainer6"]
@@ -206,7 +207,7 @@ text = "World Height"
 unique_name_in_owner = true
 layout_mode = 2
 min_value = 1.0
-max_value = 65536.0
+max_value = 131072.0
 value = 1024.0
 
 [node name="SpatialHashesToggle" type="CheckButton" parent="VBoxContainer/VBoxContainer"]
