@@ -3,6 +3,7 @@
 
 #include "shared_data.glsl"
 
+// Sets the list of sums to 0 in all indices
 void zero_hashes() {
     int idx = int(gl_GlobalInvocationID.x);
     if (idx < hash_params.hash_count) {
@@ -10,6 +11,7 @@ void zero_hashes() {
     }
 }
 
+// Populates hash_sum with the number of agents in each index
 void sum() {
     int idx = int(gl_GlobalInvocationID.x);
     if (idx < params.agent_count) {
@@ -17,6 +19,7 @@ void sum() {
     }    
 }
 
+// Populates hash_prefix_sum with the CUMULATIVE number of agents in each index
 void prefix_sum() {
     int idx = int(gl_GlobalInvocationID.x);
     if (idx >= hash_params.hash_count) return;

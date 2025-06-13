@@ -22,6 +22,7 @@ class_name SimulationInterface
 @onready var opposing_distance_spinbox_x = %OpposingDistanceSpinboxX
 @onready var opposing_distance_spinbox_y = %OpposingDistanceSpinboxY
 @onready var neighbour_radius_spin_box: SpinBox = %NeighbourRadiusSpinBox
+@onready var constraint_type: OptionButton = %ConstraintType
 
 @onready var error_label: Label = %ErrorLabel
 
@@ -60,13 +61,17 @@ func start_simulation():
 		"neighbour_radius": neighbour_radius_spin_box.value,
 		"circle_radius": circle_radius_spinbox.value,
 		"opposing_groups_x_distance": opposing_distance_spinbox_x.value,
-		"opposing_groups_y_offset": opposing_distance_spinbox_y.value
+		"opposing_groups_y_offset": opposing_distance_spinbox_y.value,
+		"constraint_type": constraint_type.selected
 	}
 	
 	var config_file: FileAccess = FileAccess.open(config_file_location, FileAccess.WRITE)
 	config_file.store_line(JSON.stringify(param_dict))
 	config_file.close()
-	EditorInterface.play_custom_scene(RED_BLACK_AGENTS_PATH)
+	if Engine.is_editor_hint():
+		EditorInterface.play_custom_scene(RED_BLACK_AGENTS_PATH)
+	else:
+		get_tree().change_scene_to_file(RED_BLACK_AGENTS_PATH)
 
 func set_error_text(text: String):
 	error_label.text = text

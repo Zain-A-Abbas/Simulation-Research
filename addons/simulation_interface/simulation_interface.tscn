@@ -60,7 +60,7 @@ unique_name_in_owner = true
 layout_mode = 2
 selected = 0
 item_count = 5
-popup/item_0/text = "LONG_RANGE_CONSTRAINT"
+popup/item_0/text = "DISTANCE_CONSTRAINT"
 popup/item_0/id = 0
 popup/item_1/text = "OPPOSING_AGENTS"
 popup/item_1/id = 1
@@ -70,6 +70,23 @@ popup/item_3/text = "OPPOSING_LARGE_GROUPS"
 popup/item_3/id = 3
 popup/item_4/text = "CIRCLE_POSITION_EXCHANGE"
 popup/item_4/id = 4
+
+[node name="HBoxContainer8" type="HBoxContainer" parent="VBoxContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainer/VBoxContainer/HBoxContainer8"]
+layout_mode = 2
+text = "Constraint Type"
+
+[node name="ConstraintType" type="OptionButton" parent="VBoxContainer/VBoxContainer/HBoxContainer8"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 0
+item_count = 2
+popup/item_0/text = "Long Range"
+popup/item_0/id = 0
+popup/item_1/text = "Short Range"
+popup/item_1/id = 1
 
 [node name="OpposingAgentsOptions" type="HBoxContainer" parent="VBoxContainer/VBoxContainer"]
 unique_name_in_owner = true
@@ -142,7 +159,7 @@ unique_name_in_owner = true
 layout_mode = 2
 min_value = 1.0
 max_value = 64.0
-value = 16.0
+value = 8.0
 rounded = true
 
 [node name="HBoxContainer7" type="HBoxContainer" parent="VBoxContainer/VBoxContainer"]

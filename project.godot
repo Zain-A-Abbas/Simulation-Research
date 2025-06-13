@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Simulation Test"
-run/main_scene="uid://ca56nxvpxws5u"
+run/main_scene="res://addons/simulation_interface/simulation_interface.tscn"
 config/features=PackedStringArray("4.4", "Forward Plus")
 run/max_fps=24
 config/icon="res://icon.svg"

@@ -49,6 +49,11 @@ layout(set = 0, binding = 7, std430) restrict buffer Params {
     float click_x; // 8
     float click_y; // 12
     float neighbour_radius; // 0
+    float constraint_type; // 4
+    float padding_1; // 8
+    float padding_2; // 12
+    float padding_3; // 0
+
 } params;
 
 layout(set = 1, binding = 0, std430) restrict buffer HashParams {

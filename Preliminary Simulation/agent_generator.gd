@@ -1,7 +1,7 @@
 extends Node
 class_name AgentGenerator
 
-func long_range_constraint(red_black_agents: RedBlackAgents):
+func distance_constraint(red_black_agents: RedBlackAgents):
 	red_black_agents.count = red_black_agents.agent_count
 	for agent in red_black_agents.agent_count:
 		var starting_position: Vector2 = Vector2(red_black_agents.rng.randf() * red_black_agents.world_size.x, red_black_agents.rng.randf() * red_black_agents.world_size.y)
@@ -113,8 +113,8 @@ func generate_agents(red_black_agents: RedBlackAgents):
 	red_black_agents.agent_inv_mass.clear()
 	
 	match red_black_agents.scenario:
-		RedBlackAgents.Scenarios.LONG_RANGE_CONSTRAINT:
-			long_range_constraint(red_black_agents)
+		RedBlackAgents.Scenarios.DISTANCE_CONSTRAINT:
+			distance_constraint(red_black_agents)
 		RedBlackAgents.Scenarios.OPPOSING_AGENTS:
 			opposing_agents(red_black_agents)
 		RedBlackAgents.Scenarios.OPPOSING_SMALL_GROUPS:

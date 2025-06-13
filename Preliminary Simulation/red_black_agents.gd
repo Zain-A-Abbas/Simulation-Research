@@ -24,7 +24,7 @@ class_name RedBlackAgents
 
 ## Enum storing all possible scenarios that can be simulated.
 enum Scenarios {
-	LONG_RANGE_CONSTRAINT,
+	DISTANCE_CONSTRAINT,
 	OPPOSING_AGENTS,
 	OPPOSING_SMALL_GROUPS,
 	OPPOSING_LARGE_GROUPS,
@@ -40,7 +40,7 @@ const SEED: int = 0
 
 #region The follow parameters are set based on the selected parameters in the Simulation Interface
 ## The currently chosen scenario
-var scenario: Scenarios = Scenarios.LONG_RANGE_CONSTRAINT
+var scenario: Scenarios = Scenarios.DISTANCE_CONSTRAINT
 
 ## The number of agents.
 var agent_count: int = 512
@@ -226,11 +226,11 @@ func import_config():
 	if use_spatial_hash:
 		hash_size = parameters["hash_size"]
 		hashes = Vector2i(
-			snappedf(world_size.x / hash_size + 0.4, 1),
-			snappedf(world_size.y / hash_size + 0.4, 1),
+			snappedf(world_size.x / hash_size, 1),
+			snappedf(world_size.y / hash_size, 1),
 		)
-		hash_count = hashes.x * hashes.y
 		
+		hash_count = hashes.x * hashes.y
 		
 		hash_viewer.h_hashes = hashes.x
 		hash_viewer.v_hashes = hashes.y
@@ -308,7 +308,7 @@ func gpu_process(delta: float):
 		rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
 		run_compute(hash_pipeline, maxi(count, hash_count))
 		
-		print("Time: " + str(Time.get_ticks_msec() / 1000.0 - hashing_start))
+		#print("Time: " + str(Time.get_ticks_msec() / 1000.0 - hashing_start))
 	
 	#print("Finished hashing")
 	
@@ -346,6 +346,10 @@ func generate_parameter_buffer(delta: float, stage: float) -> PackedByteArray:
 		click_location.x,
 		click_location.y,
 		parameters["neighbour_radius"],
+		parameters["constraint_type"],
+		0.0, # Padding
+		0.0, # Padding
+		0.0 # Padding
 	]
 	
 	# append_array must be used when including an additional array in parameter data
@@ -371,6 +375,7 @@ func run_compute(pipeline: RID, num: int):
 
 ## Sets up the computer shader once.
 func setup_compute():
+	
 	rendering_device = RenderingServer.get_rendering_device()
 	
 	# Compiles the .glsl to spirv, and then creates the shader instance
@@ -493,10 +498,10 @@ func generate_packed_array_buffer(data) -> RID:
 	var data_buffer: RID = rendering_device.storage_buffer_create(data_bytes.size(), data_bytes)
 	return data_buffer
 
-func generate_int_buffer(size: int):
-	var data = []
+func generate_int_buffer(size: int) -> RID:
+	var data: PackedInt32Array = []
 	data.resize(size)
-	var data_buffer_bytes = PackedInt32Array(data).to_byte_array()
+	var data_buffer_bytes = data.to_byte_array()
 	var data_buffer = rendering_device.storage_buffer_create(data_buffer_bytes.size(), data_buffer_bytes)
 	return data_buffer
 
