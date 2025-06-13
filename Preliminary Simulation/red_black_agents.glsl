@@ -98,8 +98,8 @@ vec4 longRangeConstraint(int i, int j) {
         const float s =  stiff * tao_sq / (INV_MASS * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) + INV_MASS  * (grad_y_j * grad_y_j + grad_x_j * grad_x_j));     //changed
 
 
-        lengthV = sqrt( s * INV_MASS * grad_x_i * s * INV_MASS * grad_x_i 
-                    +   s * INV_MASS * grad_y_i * s * INV_MASS * grad_y_i);
+        //lengthV = sqrt( s * INV_MASS * grad_x_i * s * INV_MASS * grad_x_i 
+        //            +   s * INV_MASS * grad_y_i * s * INV_MASS * grad_y_i);
 
         vec2 delta_correction_i = clamp2D(
             s * INV_MASS * grad_x_i,
@@ -132,82 +132,6 @@ vec4 longRangeConstraint(int i, int j) {
     return vec4(0.0);
 }
 
-// From the original function, x and z (y here) are presumably the starting positions, while px and pz (py here) are the positions
-// after adding the velocity and deltas.
-// To keep the same functionality, px/py are computed on the spot here.
-/*vec4 longRangeConstraint(int i, int j) {
-
-    vec2 ip = agent_pos.data[i] + agent_vel.data[i] * params.delta;
-    vec2 jp = agent_pos.data[j] + agent_vel.data[j] * params.delta;
-    const vec2 pos_delta = agent_pos.data[i] - agent_pos.data[j];
-    const float delta_inv = 1.0 / params.delta;
-    
-    const float dist = distance(agent_pos.data[i], agent_pos.data[j]);
-
-
-    float radius_sq = params.radius > dist ? (params.radius - dist) : params.radius_squared;
-    
-    const vec2 v_i = (ip - agent_pos.data[i]) * delta_inv;
-    const vec2 v_j = (jp - agent_pos.data[j]) * delta_inv;
-    const vec2 v_rel = v_i - v_j;
-
-    const float v_x = (ip.x - agent_pos.data[i].x) * delta_inv - (jp.x - agent_pos.data[j].x) * delta_inv;
-    const float v_y = (ip.y - agent_pos.data[i].y) * delta_inv - (jp.y - agent_pos.data[j].y) * delta_inv;
-    //const float v_d = v_x
-
-    const float x0 = agent_pos.data[i].x - agent_pos.data[j].x; 
-    const float y0 = agent_pos.data[i].y - agent_pos.data[j].y; 
-    const float v_sq = dot(v_rel, v_rel);
-    const float x0_sq = x0 * x0;
-    const float y0_sq = y0 * y0;
-    const float x_sq = x0_sq + y0_sq; 
-    const float b = -dot(v_rel, pos_delta);   // b = -1 * v_.dot(x0_).  Have to check this. 
-    const float c = x_sq - radius_sq;
-    const float d_sq = b * b - v_sq * c;
-    const float d = sqrt(d_sq);
-    const float tao = (b - d) / v_sq;
-    if (d_sq > 0.0 && abs(v_sq) > EPSILON && tao > 0 && tao < C_TAO_MAX){
-        
-
-        const float clamp_tao = exp(-tao * tao / C_TAO_0);
-        const float c_tao = clamp_tao;
-        const float tao_sq = c_tao * c_tao;
-
-        const float grad_x_i = 2 * c_tao * (
-            (dv_i / v_sq) * (
-                (-2.0 * v_x * tao) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d)
-                ))
-            ;
-        const float grad_y_i = 2 * c_tao * ((dv_i / v_sq) * ((-2. * v_y * tao) - (y0 + (v_x * x0 * y0 + v_y * (radius_sq - x0_sq)) / d)));
-
-
-        const float stiff = C_LONG_RANGE_STIFF * exp(-tao_sq / C_TAO_0);    //changed
-        const float s =  stiff * tao_sq / (INV_MASS * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) * 2);     //changed
-
-
-        //float lengthV = sqrt(s * INV_MASS * grad_x_i * s * INV_MASS * grad_x_i 
-          //                  + s * INV_MASS * grad_y_i * s * INV_MASS * grad_y_i);
-
-        vec2 delta_correction_i = clamp2D(
-            s * INV_MASS * grad_x_i,
-            s * INV_MASS * grad_y_i,
-            MAX_DELTA
-            );                  
-
-
-        return vec4(delta_correction_i.x, delta_correction_i.y, 1.0, 0.0);
-
-        /*delta_corrections.data[i].x += delta_correction_i.x;
-        delta_corrections.data[i].y += delta_correction_i.y;
-        delta_corrections.data[i].z += 1.0;
-
-        delta_corrections.data[j].x += delta_correction_j.x;
-        delta_corrections.data[j].y += delta_correction_j.y;
-        delta_corrections.data[j].z += 1.0;
-
-    }
-    return vec4(0.0);
-}*/
 
 vec2 rotate_velocity(int idx) {
     vec2 curr_pos = agent_pos.data[idx];
@@ -251,8 +175,6 @@ void correctionsStage() {
 
                 // Gets the 1D id of the bin
                 int hash_index = two_to_one(current_hash, hash_params.hash_x);
-
-
 
                 for (int i = hash_prefix_sum.data[hash_index - 1]; i < hash_prefix_sum.data[hash_index]; i++) {
                     if (hash_index - 1 == -1) {continue;}
