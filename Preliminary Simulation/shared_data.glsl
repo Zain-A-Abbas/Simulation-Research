@@ -26,8 +26,12 @@ layout(set = 0, binding = 5, std430) restrict buffer Tracked {
     float data[];
 } agent_tracked;
 
-// Stores information used in the debugging process.
-layout(set = 0, binding = 6, std430) restrict buffer DebuggingData {
+layout(set = 0, binding = 6, std430) restrict buffer Walls {
+    vec4 data[]; // x and y are positions, z and w are size
+} walls;
+
+//  Stores information used in the debugging process.
+layout(set = 0, binding = 7, std430) restrict buffer DebuggingData {
     int tracked_idx; // Stores the idx of an agent being "tracked" by clicking on it. As it's a float this will only be accurate up until 16,777,216 which should be fine
     float padding; // unused as of yet
     float padding_2; // unused as of yet
@@ -35,7 +39,7 @@ layout(set = 0, binding = 6, std430) restrict buffer DebuggingData {
 } debugging_data;
 
 // Parameters that are exposed/decided on the CPU-side. Stores data typically not expected to be changed once it reaches the GPU.
-layout(set = 0, binding = 7, std430) restrict buffer Params {
+layout(set = 0, binding = 8, std430) restrict buffer Params {
     float image_size; // 0 (Counting byte alignment)
     float agent_count; // 4
     float world_width; // 8
@@ -50,10 +54,9 @@ layout(set = 0, binding = 7, std430) restrict buffer Params {
     float click_y; // 12
     float neighbour_radius; // 0
     float constraint_type; // 4
-    float padding_1; // 8
+    float wall_count; // 8
     float padding_2; // 12
     float padding_3; // 0
-
 } params;
 
 layout(set = 1, binding = 0, std430) restrict buffer HashParams {

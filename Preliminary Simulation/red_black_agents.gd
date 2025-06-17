@@ -21,6 +21,7 @@ class_name RedBlackAgents
 @onready var hash_viewer: HashViewer = %HashViewer
 @onready var agent_generator: AgentGenerator = %AgentGenerator
 @onready var camera_2d: Camera2D = %Camera2D
+@onready var box_rendering: BoxRendering = %BoxRendering
 
 ## Enum storing all possible scenarios that can be simulated.
 enum Scenarios {
@@ -86,6 +87,9 @@ var delta_corrections: PackedVector4Array = []
 var locomotion_targets: PackedVector2Array = []
 var use_locomotion_targets: bool = false
 
+## Physical walls that the agents can collide with.
+var walls: PackedVector4Array = []
+
 ## If "true" then this agent is close enough to the currently selected agent (and in its spatial hash) for tracking
 var agent_tracked: PackedFloat32Array = []
 
@@ -127,6 +131,8 @@ var agent_preferred_velocity_buffer: RID
 var delta_corrections_buffer: RID
 ## Buffer that stores the locomotion targets of the agents.
 var locomotion_targets_buffer: RID
+## Buffer that stores the walls.
+var walls_buffer: RID
 ## Buffer that stores the tracking data of the agents.
 var agent_tracked_buffer: RID
 ## Buffer that stores the radii of the agents. Only used when performing a simulation where agents have variable sizes.
@@ -201,6 +207,8 @@ func _ready() -> void:
 		agent_particles.amount = count
 	
 	agent_particles.process_material.set_shader_parameter("radius", radius)
+	
+	walls = box_rendering.boxes
 	
 	# Gets the texture resource stored on the shader.
 	agent_data_1_texture_rd = agent_particles.process_material.get_shader_parameter("agent_data")
@@ -347,10 +355,11 @@ func generate_parameter_buffer(delta: float, stage: float) -> PackedByteArray:
 		click_location.y,
 		parameters["neighbour_radius"],
 		parameters["constraint_type"],
-		0.0, # Padding
+		walls.size(), # Number of walls
 		0.0, # Padding
 		0.0 # Padding
 	]
+	
 	
 	# append_array must be used when including an additional array in parameter data
 	var packed_data: PackedFloat32Array = []
@@ -410,13 +419,18 @@ func setup_compute():
 	agent_tracked_buffer = generate_packed_array_buffer(agent_tracked)
 	var agent_tracked_uniform: RDUniform = generate_compute_uniform(agent_tracked_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 5)
 	
+	walls_buffer = generate_packed_array_buffer(walls)
+	var walls_uniform: RDUniform = generate_compute_uniform(walls_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 6)
+	
 	var debugging_data: PackedFloat32Array = [0.0, 0.0, 0.0, 0.0]
 	debugging_data_buffer = generate_packed_array_buffer(debugging_data)
-	debugging_data_uniform = generate_compute_uniform(debugging_data_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 6)
+	debugging_data_uniform = generate_compute_uniform(debugging_data_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 7)
 	
 	var param_buffer_bytes: PackedByteArray = generate_parameter_buffer(0, 0)
 	param_buffer = rendering_device.storage_buffer_create(param_buffer_bytes.size(), param_buffer_bytes)
-	param_uniform = generate_compute_uniform(param_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 7)
+	param_uniform = generate_compute_uniform(param_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 8)
+	
+	#region Hash Descriptor Set
 	
 	var hash_param_buffer_bytes: PackedByteArray = PackedInt32Array([hash_size, hashes.x, hashes.y, hash_count]).to_byte_array()
 	hash_params_buffer = rendering_device.storage_buffer_create(hash_param_buffer_bytes.size(), hash_param_buffer_bytes)
@@ -436,6 +450,8 @@ func setup_compute():
 	
 	hash_reindex_buffer = generate_int_buffer(agent_count)
 	var hash_reindex_buffer_uniform: RDUniform = generate_compute_uniform(hash_reindex_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 5)
+	
+	#endregion
 	
 	# Prepares the image data to bind it to the GPU
 	var texture_format: RDTextureFormat = RDTextureFormat.new()
@@ -463,8 +479,9 @@ func setup_compute():
 		delta_corrections_uniform, # 3
 		locomotion_targets_uniform, # 4
 		agent_tracked_uniform, # 5
-		debugging_data_uniform, # 6
-		param_uniform, # 7
+		walls_uniform, # 6
+		debugging_data_uniform, # 7
+		param_uniform, # 8
 	]
 	
 	hash_bindings = [
@@ -527,6 +544,7 @@ func free_resources():
 	rendering_device.free_rid(agent_preferred_velocity_buffer)
 	rendering_device.free_rid(delta_corrections_buffer)
 	rendering_device.free_rid(locomotion_targets_buffer)
+	rendering_device.free_rid(walls_buffer)
 	rendering_device.free_rid(agent_position_buffer)
 	rendering_device.free_rid(uniform_set)
 	rendering_device.free_rid(hash_set)

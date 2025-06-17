@@ -35,6 +35,11 @@ vec2 clamp2D(float vx, float vy, float maxValue) {
   return vec2(vx, vy);
 }
 
+vec4 wallConstraint(int agent, int wall) {
+    
+    return vec4(0.0);
+}
+
 vec4 shortRangeConstraint(int i, int j) {
     vec2 ip = agent_pos.data[i] + agent_vel.data[i] * params.delta;
     vec2 jp = agent_pos.data[j] + agent_vel.data[j] * params.delta;
@@ -65,9 +70,9 @@ vec4 longRangeConstraint(int i, int j) {
     
     
     const float dist = distance(agent_pos.data[i], agent_pos.data[j]);
-    float radius_sq = params.radius_squared;
+    float radius_sq = params.radius_squared; // Changing this to something like ((params.radius * 2) * (params.radius * 2)) makes them collide at the edges
     if (dist < params.radius) {
-        radius_sq = pow((params.radius - dist), 2.0);    
+        radius_sq = pow((params.radius * 2 - dist), 2.0);    
     }
     const float v_x = (ip.x - agent_pos.data[i].x) / params.delta - (jp.x - agent_pos.data[j].x) / params.delta;
     const float v_y = (ip.y - agent_pos.data[i].y) / params.delta - (jp.y - agent_pos.data[j].y) / params.delta;
@@ -176,8 +181,8 @@ void correctionsStage() {
                 // Gets the 1D id of the bin
                 int hash_index = two_to_one(current_hash, hash_params.hash_x);
 
-                for (int i = hash_prefix_sum.data[hash_index - 1]; i < hash_prefix_sum.data[hash_index]; i++) {
                     if (hash_index - 1 == -1) {continue;}
+                for (int i = hash_prefix_sum.data[hash_index - 1]; i < hash_prefix_sum.data[hash_index]; i++) {
 
                     int other_agent = hash_reindex.data[i];
                     if (other_agent == idx) continue;
@@ -185,11 +190,11 @@ void correctionsStage() {
 
                     highlightAgent(idx, other_agent);
 
-                    if (params.constraint_type == 0.0) {
-                        local_corrections += longRangeConstraint(idx, other_agent);
+                    if (params.constraint_type == 1.0) {
+                        local_corrections += shortRangeConstraint(idx, other_agent);
                     }
                     else {
-                        local_corrections += shortRangeConstraint(idx, other_agent);
+                        local_corrections += longRangeConstraint(idx, other_agent);
                     }
                 } 
             }
@@ -199,13 +204,17 @@ void correctionsStage() {
         for (int j = 0; j < params.agent_count; j++) {
             if (j == idx) {continue;}
             highlightAgent(idx, j);
-            if (params.constraint_type == 0.0) {
-                local_corrections += longRangeConstraint(idx, j);
-            }
-            else {
+            if (params.constraint_type == 1.0) {
                 local_corrections += shortRangeConstraint(idx, j);
             }
+            else {
+                local_corrections += longRangeConstraint(idx, j);
+            }
         }
+    }
+
+    for (int j = 0; j < params.wall_count; j++) {
+        local_corrections += wallConstraint(idx, j);
     }
 
     //new_corrections[local_idx] = local_corrections;
@@ -258,7 +267,7 @@ void moveStage() {
     }
 
 
-    if ( length(vec2(params.click_x, params.click_y)) > 0.01) {
+    if (length(vec2(params.click_x, params.click_y)) > 0.01) {
         if (distance(vec2(params.click_x, params.click_y), agent_pos.data[idx]) < params.radius) {
             debugging_data.tracked_idx = idx;
         }
