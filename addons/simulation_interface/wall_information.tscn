@@ -1,0 +1,45 @@
+[gd_scene load_steps=2 format=3 uid="uid://jnh5w6gtnetv"]
+
+[ext_resource type="Script" uid="uid://steqdojwd2sl" path="res://addons/simulation_interface/wall_information.gd" id="1_ljp18"]
+
+[node name="WallInformation" type="HBoxContainer"]
+script = ExtResource("1_ljp18")
+
+[node name="Label" type="Label" parent="."]
+layout_mode = 2
+text = "X"
+
+[node name="XSpinbox" type="SpinBox" parent="."]
+layout_mode = 2
+max_value = 65536.0
+
+[node name="Label2" type="Label" parent="."]
+layout_mode = 2
+text = "Y"
+
+[node name="YSpinbox" type="SpinBox" parent="."]
+layout_mode = 2
+max_value = 65536.0
+
+[node name="Label3" type="Label" parent="."]
+layout_mode = 2
+text = "Width"
+
+[node name="WidthSpinbox" type="SpinBox" parent="."]
+layout_mode = 2
+max_value = 8192.0
+
+[node name="Label4" type="Label" parent="."]
+layout_mode = 2
+text = "Height"
+
+[node name="HeightSpinbox" type="SpinBox" parent="."]
+layout_mode = 2
+max_value = 8192.0
+
+[node name="VSeparator" type="VSeparator" parent="."]
+layout_mode = 2
+
+[node name="DeleteButton" type="Button" parent="."]
+layout_mode = 2
+text = "DELETE"

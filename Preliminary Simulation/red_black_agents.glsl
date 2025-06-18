@@ -35,8 +35,45 @@ vec2 clamp2D(float vx, float vy, float maxValue) {
   return vec2(vx, vy);
 }
 
-vec4 wallConstraint(int agent, int wall) {
-    
+vec4 wallConstraint(int agentIdx, int wallIdx) {
+    vec2 ip = agent_pos.data[agentIdx];
+    vec4 wall = walls.data[wallIdx];
+
+    float left = wall.x;
+    float right = wall.x + wall.z;
+    float top = wall.y;
+    float bottom = wall.y + wall.w;
+
+
+    // edges of the agent
+    float right_edge = ip.x + params.radius;
+    float left_edge = ip.x - params.radius;
+    float top_edge = ip.y - params.radius;
+    float bottom_edge = ip.y + params.radius;
+
+    if ((right_edge > left && left_edge < right) && (bottom_edge > top && top_edge < bottom)) {
+        float dxLeft   = right_edge - left;
+        float dxRight  = right - left_edge;
+        float dyBottom = bottom - top_edge;
+        float dyTop    = bottom_edge - top;
+
+        // Find smallest penetration axis
+        float minX = min(dxLeft, dxRight);
+        float minY = min(dyBottom, dyTop);
+
+        vec2 push_vector;
+        if (minX < minY) {
+            float push = (dxLeft < dxRight) ? -dxLeft : dxRight;
+            push_vector = vec2(push, 0.0);
+        } else {
+            float push = (dyTop < dyBottom) ? -dyTop : dyBottom;
+            push_vector = vec2(0.0, push);
+        }
+
+        return vec4(push_vector, 1.0, 0.0);
+
+    }
+
     return vec4(0.0);
 }
 
@@ -61,7 +98,6 @@ vec4 shortRangeConstraint(int i, int j) {
     return vec4(0.0);
 }
 
-shared vec4 new_corrections[1024];
 
 vec4 longRangeConstraint(int i, int j) {
 
@@ -163,6 +199,7 @@ void correctionsStage() {
     agent_tracked.data[idx] = 0.0;
 
     vec4 local_corrections = vec4(0.0);
+    vec4 wall_corrections = vec4(0.0);
 
     if (params.use_spatial_hash > 0.0) {
         int agent_hash = hash.data[idx];
@@ -214,8 +251,10 @@ void correctionsStage() {
     }
 
     for (int j = 0; j < params.wall_count; j++) {
-        local_corrections += wallConstraint(idx, j);
+        wall_corrections += wallConstraint(idx, j);
     }
+
+    agent_pos.data[idx] += wall_corrections.xy;
 
     //new_corrections[local_idx] = local_corrections;
     delta_corrections.data[idx] = local_corrections;

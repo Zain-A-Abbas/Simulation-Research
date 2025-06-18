@@ -2,6 +2,8 @@
 extends MarginContainer
 class_name SimulationInterface
 
+const WALL_INFORMATION = preload("res://addons/simulation_interface/wall_information.tscn")
+
 @onready var agent_count_spin_box: SpinBox = %AgentCountSpinBox
 @onready var scenario_option: OptionButton = %ScenarioOption
 @onready var max_velocity_spinbox: SpinBox = %MaxVelocitySpinbox
@@ -23,6 +25,8 @@ class_name SimulationInterface
 @onready var opposing_distance_spinbox_y = %OpposingDistanceSpinboxY
 @onready var neighbour_radius_spin_box: SpinBox = %NeighbourRadiusSpinBox
 @onready var constraint_type: OptionButton = %ConstraintType
+@onready var add_wall_button: Button = %AddWallButton
+@onready var wall_instance_v_box: VBoxContainer = %WallInstanceVBox
 
 @onready var error_label: Label = %ErrorLabel
 
@@ -38,6 +42,8 @@ func _ready() -> void:
 	scenario_option.clear()
 	for scenario in RedBlackAgents.Scenarios.keys():
 		scenario_option.add_item(scenario)
+	
+	add_wall_button.pressed.connect(add_wall_instance)
 
 func start_simulation():
 	if (step_decimals(window_x_spin_box.value / hashes_spin_box.value) > 0.0 || step_decimals(window_y_spin_box.value / hashes_spin_box.value) > 0.0):
@@ -62,7 +68,8 @@ func start_simulation():
 		"circle_radius": circle_radius_spinbox.value,
 		"opposing_groups_x_distance": opposing_distance_spinbox_x.value,
 		"opposing_groups_y_offset": opposing_distance_spinbox_y.value,
-		"constraint_type": constraint_type.selected
+		"constraint_type": constraint_type.selected,
+		"walls": get_wall_data()
 	}
 	
 	var config_file: FileAccess = FileAccess.open(config_file_location, FileAccess.WRITE)
@@ -85,3 +92,21 @@ func set_scenario(idx: int):
 func is_scenario(scenario: RedBlackAgents.Scenarios):
 	var scenario_text: String = scenario_option.get_item_text(scenario_option.selected)
 	return RedBlackAgents.Scenarios[scenario_text] == scenario
+
+func add_wall_instance():
+	var new_wall_instance: WallInformation = WALL_INFORMATION.instantiate()
+	wall_instance_v_box.add_child(new_wall_instance)
+
+func get_wall_data() -> Array:
+	var walls: Array = []
+	
+	var wall_data: PackedVector4Array = []
+	for child in wall_instance_v_box.get_children():
+		if child is WallInformation:
+			var new_wall: Array[float] = []
+			new_wall.append(child.x_spinbox.value)
+			new_wall.append(child.y_spinbox.value)
+			new_wall.append(child.width_spinbox.value)
+			new_wall.append(child.height_spinbox.value)
+			walls.append(new_wall)
+	return walls

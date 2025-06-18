@@ -208,7 +208,9 @@ func _ready() -> void:
 	
 	agent_particles.process_material.set_shader_parameter("radius", radius)
 	
-	walls = box_rendering.boxes
+	walls = []
+	for wall in box_rendering.boxes:
+		walls.append(wall)
 	
 	# Gets the texture resource stored on the shader.
 	agent_data_1_texture_rd = agent_particles.process_material.get_shader_parameter("agent_data")
@@ -244,6 +246,10 @@ func import_config():
 		hash_viewer.v_hashes = hashes.y
 	hash_viewer.world_size = world_size
 	hash_viewer.queue_redraw()
+	
+	box_rendering.boxes = []
+	for wall in parameters["walls"]:
+		box_rendering.boxes.append(Vector4(wall[0], wall[1], wall[2], wall[3]))
 	
 	if parameters["save"] == true:
 		start_save()
