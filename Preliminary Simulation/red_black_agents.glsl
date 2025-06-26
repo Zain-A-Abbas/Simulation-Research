@@ -70,7 +70,7 @@ vec4 wallConstraint(int agentIdx, int wallIdx) {
             push_vector = vec2(0.0, push);
         }
 
-        return vec4(push_vector, 1.0, 0.0);
+        return vec4(push_vector, 1.0, 1.0);
 
     }
 
@@ -85,15 +85,13 @@ vec4 shortRangeConstraint(int i, int j) {
     if (overlap < 0.0){
         vec2 grad_i = ip - jp;
         const vec2 grad_i_v = -grad_i / dist;
-        
-        return vec4(overlap * grad_i_v.x, overlap * grad_i_v.y, 1.0, 0.0);
-        
-        /*delta_corrections.data[i].x += 0.5 * overlap * grad_x_i;
-        delta_corrections.data[i].y += 0.5 * overlap * grad_y_i;
+    
+        delta_corrections.data[i].xy += 0.5 * overlap * grad_i_v;
         delta_corrections.data[i].z += 1.0;
-        delta_corrections.data[j].x += 0.5 * overlap * grad_x_j;
-        delta_corrections.data[j].y += 0.5 * overlap * grad_x_j;
-        delta_corrections.data[j].z += 1.0;*/
+        delta_corrections.data[j].xy += -0.5 * overlap * grad_i_v;
+        delta_corrections.data[j].z += 1.0;
+    
+        return vec4(0.0);
     }
     return vec4(0.0);
 }
@@ -190,6 +188,19 @@ vec2 rotate_velocity(int idx) {
     return pref_vel * rot_mat;
 }
 
+void wallCorrections() {    
+    int idx = int(gl_GlobalInvocationID.x);
+    if (idx >= params.agent_count) {return;}
+
+    vec4 wall_corrections = vec4(0.0); 
+    for (int j = 0; j < params.wall_count; j++) {
+        wall_corrections += wallConstraint(idx, j);
+    }
+
+    agent_pos.data[idx] += wall_corrections.xy;
+
+}
+
 void correctionsStage() {
     int idx = int(gl_GlobalInvocationID.x);
     if (idx >= params.agent_count) {return;}
@@ -199,7 +210,7 @@ void correctionsStage() {
     agent_tracked.data[idx] = 0.0;
 
     vec4 local_corrections = vec4(0.0);
-    vec4 wall_corrections = vec4(0.0);
+
 
     if (params.use_spatial_hash > 0.0) {
         int agent_hash = hash.data[idx];
@@ -250,14 +261,8 @@ void correctionsStage() {
         }
     }
 
-    for (int j = 0; j < params.wall_count; j++) {
-        wall_corrections += wallConstraint(idx, j);
-    }
 
-    agent_pos.data[idx] += wall_corrections.xy;
-
-    //new_corrections[local_idx] = local_corrections;
-    delta_corrections.data[idx] = local_corrections;
+    delta_corrections.data[idx] += local_corrections;
 
 }
 
@@ -267,15 +272,17 @@ void moveStage() {
 
     int local_idx = int(gl_LocalInvocationID.x);
 
-    /*if (new_corrections[local_idx].z > 0.0) {
-        agent_vel.data[idx] += new_corrections[local_idx].xy / new_corrections[local_idx].z;
-    }*/
-
-    if (delta_corrections.data[idx].z > 0.0) {
-        agent_vel.data[idx] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
-    }
 
     agent_vel.data[idx] = clamp2D(agent_vel.data[idx].x, agent_vel.data[idx].y, MAX_SPEED);
+    
+    if (delta_corrections.data[idx].z > 0.0) {
+            if (params.constraint_type == 1.0) {
+                agent_pos.data[idx] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
+            } else {
+                agent_vel.data[idx] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
+            }  
+        delta_corrections.data[idx] = vec4(0.0);
+    }
     
     agent_pos.data[idx] += agent_vel.data[idx] * params.delta;
 
@@ -330,9 +337,11 @@ void moveStage() {
 void main() {
 
     if (params.stage == 0.0) {
+        wallCorrections();
+    } else if (params.stage == 1.0) {
         correctionsStage();
     }
-    else if (params.stage == 1.0) {
+    else if (params.stage == 2.0) {
         moveStage();
     }
 

@@ -356,6 +356,13 @@ func gpu_process(delta: float):
 	param_buffer_bytes = generate_parameter_buffer(delta, 1)
 	rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
 	run_compute(agent_pipeline, maxi(count, hash_count))
+
+	RenderingServer.force_sync() # May not be necessary
+	
+	# Third pass
+	param_buffer_bytes = generate_parameter_buffer(delta, 2)
+	rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
+	run_compute(agent_pipeline, maxi(count, hash_count))
 	
 	#print("Time taken: " + str(Time.get_ticks_msec() / 1000.0 - time_before))
 	
