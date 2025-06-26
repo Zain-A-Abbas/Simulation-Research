@@ -115,9 +115,43 @@ func circle_position_exchange(red_black_agents: RedBlackAgents):
 		
 		angle_offset += deg_to_rad(360.0 / red_black_agents.agent_count)
 
+func escape_test(red_black_agents: RedBlackAgents):
+	red_black_agents.count = red_black_agents.agent_count
+	red_black_agents.use_locomotion_targets = true
+	
+	red_black_agents.locomotion_targets.append_array([Vector2(425, 350), Vector2(475, 350), Vector2(925, 350)])
+	red_black_agents.retargeting_boxes.append_array([Vector4(400, 325, 50, 50), Vector4(450, 325, 50, 50), Vector4(900, 325, 50, 50)])
+	red_black_agents.retargeting_locomotion_indices.append_array([1, 2, 2])
+	
+	red_black_agents.walls.append_array([
+		Vector4(0, 0, 500, 100),
+		Vector4(0, 600, 500, 100),
+		Vector4(450, 100, 50, 225),
+		Vector4(450, 100+225+50, 50, 225),
+	])
+	red_black_agents.box_rendering.walls.clear()
+	for wall in red_black_agents.walls:
+		red_black_agents.box_rendering.walls.append(wall)
+	
+	var spawn_box: Vector4 = Vector4(50, 150, 400, 450)
+	
+	for agent in red_black_agents.count:
+		red_black_agents.agent_positions.append(Vector2(spawn_box.x, spawn_box.y) + Vector2(spawn_box.z * randf(), spawn_box.w * randf()))
+		var starting_vel: Vector2 = Vector2(red_black_agents.max_velocity, red_black_agents.max_velocity)
+		red_black_agents.agent_velocities.append(starting_vel)
+		red_black_agents.agent_preferred_velocities.append(starting_vel)
+		red_black_agents.delta_corrections.append(Vector4.ZERO)
+		
+		red_black_agents.locomotion_indices.append(0)
+		red_black_agents.retargeting_locomotion_indices.append(0)
+		red_black_agents.retargeting_boxes.append(Vector4.ZERO)
+		
+		red_black_agents.agent_tracked.append(0.0)
+		red_black_agents.agent_inv_mass.append(red_black_agents.rng.randf_range(0.2, 0.4))
 
 func retargeting_test(red_black_agents: RedBlackAgents):
 	red_black_agents.count = red_black_agents.agent_count
+	
 	red_black_agents.use_locomotion_targets = true
 	red_black_agents.locomotion_targets.append_array([Vector2(700, 300), Vector2(600, 700), Vector2(300, 600)])
 	red_black_agents.retargeting_boxes.append_array([Vector4(600, 200, 200, 200), Vector4(500, 600, 200, 200), Vector4(200, 550, 200, 100)])
@@ -135,9 +169,7 @@ func retargeting_test(red_black_agents: RedBlackAgents):
 		red_black_agents.retargeting_locomotion_indices.append(0)
 		red_black_agents.retargeting_boxes.append(Vector4.ZERO)
 		red_black_agents.agent_tracked.append(0.0)
-		red_black_agents.agent_inv_mass.append(red_black_agents.rng.randf_range(0.2, 0.4)) # Unsure as of yet if this range is correct. 
-	
-	
+		red_black_agents.agent_inv_mass.append(red_black_agents.rng.randf_range(0.2, 0.4))
 
 func generate_agents(red_black_agents: RedBlackAgents):
 	red_black_agents.agent_positions.clear()
@@ -158,5 +190,7 @@ func generate_agents(red_black_agents: RedBlackAgents):
 			opposing_groups(red_black_agents, false)
 		RedBlackAgents.Scenarios.CIRCLE_POSITION_EXCHANGE:
 			circle_position_exchange(red_black_agents)
+		RedBlackAgents.Scenarios.ESCAPE_TEST:
+			escape_test(red_black_agents)
 		RedBlackAgents.Scenarios.RETARGETING_TEST:
 			retargeting_test(red_black_agents)
