@@ -21,17 +21,33 @@ layout (set = 0, binding = 4, std430) restrict buffer LocomotionTarget {
     vec2 data[];
 } locomotion_targets;
 
+layout (set = 0, binding = 5, std430) restrict buffer LocomotionIndex {
+    int data[];
+} locomotion_indices;
+
+// the locomotion target that this box points to once an agent steps inside
+// for this to work, the indices of the locomotion target must match the index of the box
+// if an agent is going for locomotion_targets.data[0], then it will ONLY check if it is inside retargeting_boxes.data[0]
+layout (set = 0, binding = 6, std430) restrict buffer RetargetingLocomotionIndices {
+    int data[];
+} retargeting_locomotion_indices;
+
+layout (set = 0, binding = 7, std430) restrict buffer RetargetingBox {
+    vec4 data[];
+} retargeting_boxes;
+
+
 // If "true" then this agent is close enough to the currently selected agent (and in its spatial hash) for showing a different color
-layout(set = 0, binding = 5, std430) restrict buffer Tracked {
+layout(set = 0, binding = 8, std430) restrict buffer Tracked {
     float data[];
 } agent_tracked;
 
-layout(set = 0, binding = 6, std430) restrict buffer Walls {
+layout(set = 0, binding = 9, std430) restrict buffer Walls {
     vec4 data[]; // x and y are positions, z and w are size
 } walls;
 
 //  Stores information used in the debugging process.
-layout(set = 0, binding = 7, std430) restrict buffer DebuggingData {
+layout(set = 0, binding = 10, std430) restrict buffer DebuggingData {
     int tracked_idx; // Stores the idx of an agent being "tracked" by clicking on it. As it's a float this will only be accurate up until 16,777,216 which should be fine
     float padding; // unused as of yet
     float padding_2; // unused as of yet
@@ -39,7 +55,7 @@ layout(set = 0, binding = 7, std430) restrict buffer DebuggingData {
 } debugging_data;
 
 // Parameters that are exposed/decided on the CPU-side. Stores data typically not expected to be changed once it reaches the GPU.
-layout(set = 0, binding = 8, std430) restrict buffer Params {
+layout(set = 0, binding = 11, std430) restrict buffer Params {
     float image_size; // 0 (Counting byte alignment)
     float agent_count; // 4
     float world_width; // 8

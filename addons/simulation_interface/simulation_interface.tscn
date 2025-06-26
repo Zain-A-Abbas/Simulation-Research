@@ -4,7 +4,7 @@
 [ext_resource type="Theme" uid="uid://c456o0y7vi54c" path="res://addons/simulation_interface/interface_theme.tres" id="1_xvj4m"]
 
 [node name="SimulationInterface" type="MarginContainer"]
-anchors_preset = -1
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
@@ -61,7 +61,7 @@ text = "Scenario"
 unique_name_in_owner = true
 layout_mode = 2
 selected = 0
-item_count = 5
+item_count = 6
 popup/item_0/text = "DISTANCE_CONSTRAINT"
 popup/item_0/id = 0
 popup/item_1/text = "OPPOSING_AGENTS"
@@ -72,6 +72,8 @@ popup/item_3/text = "OPPOSING_LARGE_GROUPS"
 popup/item_3/id = 3
 popup/item_4/text = "CIRCLE_POSITION_EXCHANGE"
 popup/item_4/id = 4
+popup/item_5/text = "RETARGETING_TEST"
+popup/item_5/id = 5
 
 [node name="HBoxContainer8" type="HBoxContainer" parent="VBoxContainer/VBoxContainer"]
 layout_mode = 2

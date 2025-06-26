@@ -29,7 +29,8 @@ enum Scenarios {
 	OPPOSING_AGENTS,
 	OPPOSING_SMALL_GROUPS,
 	OPPOSING_LARGE_GROUPS,
-	CIRCLE_POSITION_EXCHANGE
+	CIRCLE_POSITION_EXCHANGE,
+	RETARGETING_TEST
 }
 
 const RED_BLACK_AGENTS_CONFIG_FILE: String = "user://red_black_agents_config.json"
@@ -85,6 +86,12 @@ var delta_corrections: PackedVector4Array = []
 
 ## Where the agents move towards 
 var locomotion_targets: PackedVector2Array = []
+## Points to the indices in the above array that an agent targets
+var locomotion_indices: PackedFloat32Array = []
+## Stores the locomotion target mapped to a retargeting location and the next locomotion target
+var retargeting_locomotion_indices: PackedInt32Array = []
+## Stores the dimensions of retargeting locations
+var retargeting_boxes: PackedVector4Array = []
 var use_locomotion_targets: bool = false
 
 ## Physical walls that the agents can collide with.
@@ -131,6 +138,10 @@ var agent_preferred_velocity_buffer: RID
 var delta_corrections_buffer: RID
 ## Buffer that stores the locomotion targets of the agents.
 var locomotion_targets_buffer: RID
+## Buffer that stores the indices of the locomotion target each agent moves towards.
+var locomotion_indices_buffer: RID
+var retargeting_locomotion_indices_buffer: RID
+var retargeting_boxes_buffer: RID
 ## Buffer that stores the walls.
 var walls_buffer: RID
 ## Buffer that stores the tracking data of the agents.
@@ -209,8 +220,15 @@ func _ready() -> void:
 	agent_particles.process_material.set_shader_parameter("radius", radius)
 	
 	walls = []
-	for wall in box_rendering.boxes:
+	for wall in box_rendering.walls:
 		walls.append(wall)
+	
+	box_rendering.retargeting_boxes = []
+	for retargeting_box in retargeting_boxes:
+		box_rendering.retargeting_boxes.append(retargeting_box)
+	
+	if walls.is_empty():
+		walls.insert(0, Vector4.ZERO)
 	
 	# Gets the texture resource stored on the shader.
 	agent_data_1_texture_rd = agent_particles.process_material.get_shader_parameter("agent_data")
@@ -247,9 +265,9 @@ func import_config():
 	hash_viewer.world_size = world_size
 	hash_viewer.queue_redraw()
 	
-	box_rendering.boxes = []
+	box_rendering.walls = []
 	for wall in parameters["walls"]:
-		box_rendering.boxes.append(Vector4(wall[0], wall[1], wall[2], wall[3]))
+		box_rendering.walls.append(Vector4(wall[0], wall[1], wall[2], wall[3]))
 	
 	if parameters["save"] == true:
 		start_save()
@@ -422,19 +440,28 @@ func setup_compute():
 	locomotion_targets_buffer = generate_packed_array_buffer(locomotion_targets)
 	var locomotion_targets_uniform: RDUniform = generate_compute_uniform(locomotion_targets_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 4)
 	
+	locomotion_indices_buffer = generate_packed_array_buffer(locomotion_indices)
+	var locomotion_indices_uniform: RDUniform = generate_compute_uniform(locomotion_indices_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 5)
+	
+	retargeting_locomotion_indices_buffer = generate_packed_array_buffer(retargeting_locomotion_indices)
+	var retargeting_locomotion_indices_uniform: RDUniform = generate_compute_uniform(retargeting_locomotion_indices_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 6)
+	
+	retargeting_boxes_buffer = generate_packed_array_buffer(retargeting_boxes)
+	var retargeting_boxes_uniform: RDUniform = generate_compute_uniform(retargeting_boxes_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 7)
+	
 	agent_tracked_buffer = generate_packed_array_buffer(agent_tracked)
-	var agent_tracked_uniform: RDUniform = generate_compute_uniform(agent_tracked_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 5)
+	var agent_tracked_uniform: RDUniform = generate_compute_uniform(agent_tracked_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 8)
 	
 	walls_buffer = generate_packed_array_buffer(walls)
-	var walls_uniform: RDUniform = generate_compute_uniform(walls_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 6)
+	var walls_uniform: RDUniform = generate_compute_uniform(walls_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 9)
 	
 	var debugging_data: PackedFloat32Array = [0.0, 0.0, 0.0, 0.0]
 	debugging_data_buffer = generate_packed_array_buffer(debugging_data)
-	debugging_data_uniform = generate_compute_uniform(debugging_data_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 7)
+	debugging_data_uniform = generate_compute_uniform(debugging_data_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 10)
 	
 	var param_buffer_bytes: PackedByteArray = generate_parameter_buffer(0, 0)
 	param_buffer = rendering_device.storage_buffer_create(param_buffer_bytes.size(), param_buffer_bytes)
-	param_uniform = generate_compute_uniform(param_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 8)
+	param_uniform = generate_compute_uniform(param_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 11)
 	
 	#region Hash Descriptor Set
 	
@@ -484,10 +511,13 @@ func setup_compute():
 		agent_preferred_velocity_uniform, # 2
 		delta_corrections_uniform, # 3
 		locomotion_targets_uniform, # 4
-		agent_tracked_uniform, # 5
-		walls_uniform, # 6
-		debugging_data_uniform, # 7
-		param_uniform, # 8
+		locomotion_indices_uniform, # 5
+		retargeting_locomotion_indices_uniform, # 6
+		retargeting_boxes_uniform, # 7
+		agent_tracked_uniform, # 8
+		walls_uniform, # 9
+		debugging_data_uniform, # 10
+		param_uniform, # 11
 	]
 	
 	hash_bindings = [

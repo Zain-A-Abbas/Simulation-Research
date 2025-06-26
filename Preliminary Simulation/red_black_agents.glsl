@@ -177,7 +177,7 @@ vec4 longRangeConstraint(int i, int j) {
 vec2 rotate_velocity(int idx) {
     vec2 curr_pos = agent_pos.data[idx];
     vec2 pref_vel = agent_pref_vel.data[idx];
-    vec2 loc_targ = locomotion_targets.data[idx];
+    vec2 loc_targ = locomotion_targets.data[locomotion_indices.data[idx]];
 
     vec2 direction = normalize(loc_targ - curr_pos);
     float angle = acos(clamp(dot(direction, normalize(pref_vel)), -1.0, 1.0));
@@ -297,11 +297,21 @@ void moveStage() {
     }
 
     if (params.use_locomotion_targets > 0.0) {
-        if (dot(agent_pos.data[idx] - locomotion_targets.data[idx], agent_pos.data[idx] - locomotion_targets.data[idx]) < 4.0) {
+        if ((locomotion_indices.data[idx] == retargeting_locomotion_indices.data[locomotion_indices.data[idx]])
+        && dot(agent_pos.data[idx] - locomotion_targets.data[idx], agent_pos.data[idx] - locomotion_targets.data[idx]) < 4.0) 
+        {
             agent_pref_vel.data[idx] = vec2(0.0);
             agent_vel.data[idx] = vec2(0.0);
-        } else {
+        } else {    
             agent_pref_vel.data[idx] = rotate_velocity(idx);
+        }
+
+        if (agent_pos.data[idx].x > retargeting_boxes.data[locomotion_indices.data[idx]].x
+        && agent_pos.data[idx].x < retargeting_boxes.data[locomotion_indices.data[idx]].x + retargeting_boxes.data[locomotion_indices.data[idx]].z
+        && agent_pos.data[idx].y > retargeting_boxes.data[locomotion_indices.data[idx]].y
+        && agent_pos.data[idx].y < retargeting_boxes.data[locomotion_indices.data[idx]].y + retargeting_boxes.data[locomotion_indices.data[idx]].w)
+        {
+            locomotion_indices.data[idx] = retargeting_locomotion_indices.data[locomotion_indices.data[idx]];
         }
     }
 
