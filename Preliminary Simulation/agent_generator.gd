@@ -102,8 +102,7 @@ func circle_position_exchange(red_black_agents: RedBlackAgents):
 		) * circle_radius + circle_center)
 		
 		red_black_agents.locomotion_indices.append(agent)
-		
-		red_black_agents.retargeting_locomotion_indices.append(0)
+		red_black_agents.retargeting_locomotion_indices.append(agent)
 		red_black_agents.retargeting_boxes.append(Vector4.ZERO)
 		
 		var starting_vel: Vector2 = Vector2(red_black_agents.max_velocity, 0)

@@ -12,5 +12,4 @@ func _ready() -> void:
 	delete_button.pressed.connect(_on_delete_button_pressed)
 
 func _on_delete_button_pressed() -> void:
-	print("Woah")
 	self.queue_free()

@@ -87,7 +87,7 @@ var delta_corrections: PackedVector4Array = []
 ## Where the agents move towards 
 var locomotion_targets: PackedVector2Array = []
 ## Points to the indices in the above array that an agent targets
-var locomotion_indices: PackedFloat32Array = []
+var locomotion_indices: PackedInt32Array = []
 ## Stores the locomotion target mapped to a retargeting location and the next locomotion target
 var retargeting_locomotion_indices: PackedInt32Array = []
 ## Stores the dimensions of retargeting locations
