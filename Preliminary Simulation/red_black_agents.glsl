@@ -19,7 +19,7 @@ float random(uvec3 st) {
 
 void highlightAgent(int i, int j) {
     if (j == debugging_data.tracked_idx) {
-        if (distance(agent_pos.data[i], agent_pos.data[j]) < params.neighbour_radius) {
+        if (distance(agent_pos.data[i], agent_pos.data[j]) < float_params.neighbour_radius) {
             agent_tracked.data[i] = 1.0;
         }   
     }
@@ -46,10 +46,10 @@ vec4 wallConstraint(int agentIdx, int wallIdx) {
 
 
     // edges of the agent
-    float right_edge = ip.x + params.radius;
-    float left_edge = ip.x - params.radius;
-    float top_edge = ip.y - params.radius;
-    float bottom_edge = ip.y + params.radius;
+    float right_edge = ip.x + float_params.radius;
+    float left_edge = ip.x - float_params.radius;
+    float top_edge = ip.y - float_params.radius;
+    float bottom_edge = ip.y + float_params.radius;
 
     if ((right_edge > left && left_edge < right) && (bottom_edge > top && top_edge < bottom)) {
         float dxLeft   = right_edge - left;
@@ -78,18 +78,18 @@ vec4 wallConstraint(int agentIdx, int wallIdx) {
 }
 
 vec4 shortRangeConstraint(int i, int j) {
-    vec2 ip = agent_pos.data[i] + agent_vel.data[i] * params.delta;
-    vec2 jp = agent_pos.data[j] + agent_vel.data[j] * params.delta;
+    vec2 ip = agent_pos.data[i + int_params.agent_count] + agent_vel.data[i] * float_params.delta;
+    vec2 jp = agent_pos.data[j] + agent_vel.data[j] * float_params.delta;
     const float dist = distance(ip, jp);
-    const float overlap = dist - 2*params.radius;
+    const float overlap = dist - 2*float_params.radius;
     if (overlap < 0.0){
         vec2 grad_i = ip - jp;
         const vec2 grad_i_v = -grad_i / dist;
     
         delta_corrections.data[i].xy += 0.5 * overlap * grad_i_v;
         delta_corrections.data[i].z += 1.0;
-        delta_corrections.data[j].xy += -0.5 * overlap * grad_i_v;
-        delta_corrections.data[j].z += 1.0;
+        //delta_corrections.data[j].xy += -0.5 * overlap * grad_i_v;
+        //delta_corrections.data[j].z += 1.0;
     
         return vec4(0.0);
     }
@@ -99,17 +99,17 @@ vec4 shortRangeConstraint(int i, int j) {
 
 vec4 longRangeConstraint(int i, int j) {
 
-    vec2 ip = agent_pos.data[i] + agent_vel.data[i] * params.delta;
-    vec2 jp = agent_pos.data[j] + agent_vel.data[j] * params.delta;
+    vec2 ip = agent_pos.data[i] + agent_vel.data[i] * float_params.delta;
+    vec2 jp = agent_pos.data[j] + agent_vel.data[j] * float_params.delta;
     
     
     const float dist = distance(agent_pos.data[i], agent_pos.data[j]);
-    float radius_sq = params.radius_squared; // Changing this to something like ((params.radius * 2) * (params.radius * 2)) makes them collide at the edges
-    if (dist < params.radius) {
-        radius_sq = pow((params.radius * 2 - dist), 2.0);    
+    float radius_sq = float_params.radius_squared; // Changing this to something like ((float_params.radius * 2) * (float_params.radius * 2)) makes them collide at the edges
+    if (dist < float_params.radius) {
+        radius_sq = pow((float_params.radius * 2 - dist), 2.0);    
     }
-    const float v_x = (ip.x - agent_pos.data[i].x) / params.delta - (jp.x - agent_pos.data[j].x) / params.delta;
-    const float v_y = (ip.y - agent_pos.data[i].y) / params.delta - (jp.y - agent_pos.data[j].y) / params.delta;
+    const float v_x = (ip.x - agent_pos.data[i].x) / float_params.delta - (jp.x - agent_pos.data[j].x) / float_params.delta;
+    const float v_y = (ip.y - agent_pos.data[i].y) / float_params.delta - (jp.y - agent_pos.data[j].y) / float_params.delta;
     const float x0 = agent_pos.data[i].x - agent_pos.data[j].x; 
     const float y0 = agent_pos.data[i].y - agent_pos.data[j].y; 
     const float v_sq = v_x * v_x + v_y * v_y;
@@ -188,12 +188,10 @@ vec2 rotate_velocity(int idx) {
     return pref_vel * rot_mat;
 }
 
-void wallCorrections() {    
-    int idx = int(gl_GlobalInvocationID.x);
-    if (idx >= params.agent_count) {return;}
+void wallCorrections(int idx) {
 
     vec4 wall_corrections = vec4(0.0); 
-    for (int j = 0; j < params.wall_count; j++) {
+    for (int j = 0; j < int_params.wall_count; j++) {
         wall_corrections += wallConstraint(idx, j);
     }
 
@@ -201,62 +199,78 @@ void wallCorrections() {
 
 }
 
-void correctionsStage() {
-    int idx = int(gl_GlobalInvocationID.x);
-    if (idx >= params.agent_count) {return;}
+void correctionsStage(int idx) {
 
     int local_idx = int(gl_LocalInvocationID.x);
 
     agent_tracked.data[idx] = 0.0;
 
     vec4 local_corrections = vec4(0.0);
+    delta_corrections.data[idx] = vec4(0.0);
 
-
-    if (params.use_spatial_hash > 0.0) {
-        int agent_hash = hash.data[idx];
-        vec2 hash_location = one_to_two(agent_hash, hash_params.hash_x);
-
-        vec2 current_hash = hash_location;
-        
-        for (int y_offset = -1; y_offset < 2; y_offset++) {
-            current_hash.y = hash_location.y + y_offset;
-            if (current_hash.y < 0 || current_hash.y > hash_params.hash_y) continue;
-            
-            for (int x_offset = -1; x_offset < 2; x_offset++) {
-                current_hash.x = hash_location.x + x_offset;
-                if (current_hash.x < 0 || current_hash.x > hash_params.hash_x) continue;
-
-                // Gets the 1D id of the bin
-                int hash_index = two_to_one(current_hash, hash_params.hash_x);
-
-                    if (hash_index - 1 == -1) {continue;}
-                for (int i = hash_prefix_sum.data[hash_index - 1]; i < hash_prefix_sum.data[hash_index]; i++) {
-
-                    int other_agent = hash_reindex.data[i];
-                    if (other_agent == idx) continue;
-
-
-                    highlightAgent(idx, other_agent);
-
-                    if (params.constraint_type == 1.0) {
-                        local_corrections += shortRangeConstraint(idx, other_agent);
-                    }
-                    else {
-                        local_corrections += longRangeConstraint(idx, other_agent);
-                    }
-                } 
-            }
-        }
+    int iter = 1;
+    if (int_params.constraint_type == 1) {
+        iter = 8;
     }
-    else {
-        for (int j = 0; j < params.agent_count; j++) {
-            if (j == idx) {continue;}
-            highlightAgent(idx, j);
-            if (params.constraint_type == 1.0) {
-                local_corrections += shortRangeConstraint(idx, j);
+
+
+    for (int iter_count = 0; iter_count < iter; iter_count++) {
+
+        if (int_params.use_spatial_hash == 1) {
+            delta_corrections.data[idx] = vec4(0.0);
+            int agent_hash = hash.data[idx];
+            vec2 hash_location = one_to_two(agent_hash, hash_params.hash_x);
+
+            vec2 current_hash = hash_location;
+            
+            for (int y_offset = -1; y_offset < 2; y_offset++) {
+                current_hash.y = hash_location.y + y_offset;
+                if (current_hash.y < 0 || current_hash.y > hash_params.hash_y) continue;
+                
+                for (int x_offset = -1; x_offset < 2; x_offset++) {
+                    current_hash.x = hash_location.x + x_offset;
+                    if (current_hash.x < 0 || current_hash.x > hash_params.hash_x) continue;
+
+                    // Gets the 1D id of the bin
+                    int hash_index = two_to_one(current_hash, hash_params.hash_x);
+
+                        if (hash_index - 1 == -1) {continue;}
+                    for (int i = hash_prefix_sum.data[hash_index - 1]; i < hash_prefix_sum.data[hash_index]; i++) {
+
+                        int other_agent = hash_reindex.data[i];
+                        if (other_agent == idx) continue;
+
+
+                        highlightAgent(idx, other_agent);
+
+                        if (int_params.constraint_type == 1) {
+                            //local_corrections += shortRangeConstraint(idx, other_agent);
+                            shortRangeConstraint(idx, other_agent);
+                        }
+                        else {
+                            local_corrections += longRangeConstraint(idx, other_agent);
+                        }
+                    } 
+                }
             }
-            else {
-                local_corrections += longRangeConstraint(idx, j);
+            
+            if (delta_corrections.data[idx].z > 0.0) {
+                //agent_pos.data[idx] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
+                agent_pos.data[idx + int_params.agent_count] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
+            }
+
+        }
+        else {
+            for (int j = 0; j < int_params.agent_count; j++) {
+                if (j == idx) {continue;}
+                highlightAgent(idx, j);
+                if (int_params.constraint_type == 1) {
+                    //local_corrections += shortRangeConstraint(idx, j);
+                    shortRangeConstraint(idx, j);
+                }
+                else {
+                    local_corrections += longRangeConstraint(idx, j);
+                }
             }
         }
     }
@@ -266,44 +280,40 @@ void correctionsStage() {
 
 }
 
-void moveStage() {
-    int idx = int(gl_GlobalInvocationID.x);
-    if (idx >= params.agent_count) {return;}
+void moveStage(int idx) {
 
     int local_idx = int(gl_LocalInvocationID.x);
 
-
     agent_vel.data[idx] = clamp2D(agent_vel.data[idx].x, agent_vel.data[idx].y, MAX_SPEED);
     
-    if (delta_corrections.data[idx].z > 0.0) {
-            if (params.constraint_type == 1.0) {
-                agent_pos.data[idx] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
-            } else {
-                agent_vel.data[idx] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
-            }  
-        delta_corrections.data[idx] = vec4(0.0);
+    if (int_params.constraint_type == 1) {
+            agent_pos.data[idx] = agent_pos.data[idx + int_params.agent_count];
     }
+    else if (int_params.constraint_type == 0 && delta_corrections.data[idx].z > 0.0) {
+        agent_vel.data[idx] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
+    }
+    delta_corrections.data[idx] = vec4(0.0);
     
-    agent_pos.data[idx] += agent_vel.data[idx] * params.delta;
+    agent_pos.data[idx] += agent_vel.data[idx] * float_params.delta;
 
-    if (agent_pos.data[idx].x > params.world_width) {agent_pos.data[idx].x -= params.world_width;}
-    if (agent_pos.data[idx].y > params.world_height) {agent_pos.data[idx].y -= params.world_height;}
-    if (agent_pos.data[idx].x < 0) {agent_pos.data[idx].x += params.world_width;}
-    if (agent_pos.data[idx].y < 0) {agent_pos.data[idx].y += params.world_height;}
+    if (agent_pos.data[idx].x > float_params.world_width) {agent_pos.data[idx].x -= float_params.world_width;}
+    if (agent_pos.data[idx].y > float_params.world_height) {agent_pos.data[idx].y -= float_params.world_height;}
+    if (agent_pos.data[idx].x < 0) {agent_pos.data[idx].x += float_params.world_width;}
+    if (agent_pos.data[idx].y < 0) {agent_pos.data[idx].y += float_params.world_height;}
 
     // Turns this agent's index into x/y to find the corresponding pixel on the texture
     ivec2 pixel_coord = ivec2(
-        int(mod(idx, params.image_size)),
-        int(idx / params.image_size)
+        int(mod(idx, float_params.image_size)),
+        int(idx / float_params.image_size)
     );
 
     agent_vel.data[idx] = ksi * agent_pref_vel.data[idx]  + (1.0-ksi) * agent_vel.data[idx];
 
-    if (params.use_spatial_hash > 0.0) {
+    if (int_params.use_spatial_hash > 0.0) {
         hash.data[idx] = int(agent_pos.data[idx].x / hash_params.hash_size) + int(agent_pos.data[idx].y / hash_params.hash_size) * hash_params.hash_x;
     }
 
-    if (params.use_locomotion_targets > 0.0) {
+    if (int_params.use_locomotion_targets > 0.0) {
         if ((locomotion_indices.data[idx] == retargeting_locomotion_indices.data[locomotion_indices.data[idx]])
         && dot(agent_pos.data[idx] - locomotion_targets.data[idx], agent_pos.data[idx] - locomotion_targets.data[idx]) < 4.0) 
         {
@@ -323,8 +333,8 @@ void moveStage() {
     }
 
 
-    if (length(vec2(params.click_x, params.click_y)) > 0.01) {
-        if (distance(vec2(params.click_x, params.click_y), agent_pos.data[idx]) < params.radius) {
+    if (length(vec2(float_params.click_x, float_params.click_y)) > 0.01) {
+        if (distance(vec2(float_params.click_x, float_params.click_y), agent_pos.data[idx]) < float_params.radius) {
             debugging_data.tracked_idx = idx;
         }
     }
@@ -335,14 +345,17 @@ void moveStage() {
 }
 
 void main() {
+    int idx = int(gl_GlobalInvocationID.x);
+    if (idx >= int_params.agent_count) {return;}
 
-    if (params.stage == 0.0) {
-        wallCorrections();
-    } else if (params.stage == 1.0) {
-        correctionsStage();
+    if (int_params.stage == 0) {
+        wallCorrections(idx);
+    } else if (int_params.stage == 1) {
+        agent_pos.data[idx + int_params.agent_count] = agent_pos.data[idx];
+        correctionsStage(idx);
     }
-    else if (params.stage == 2.0) {
-        moveStage();
+    else if (int_params.stage == 2) {
+        moveStage(idx);
     }
 
 }

@@ -14,7 +14,7 @@ void zero_hashes() {
 // Populates hash_sum with the number of agents in each index
 void sum() {
     int idx = int(gl_GlobalInvocationID.x);
-    if (idx < params.agent_count) {
+    if (idx < int_params.agent_count) {
         atomicAdd(hash_sum.data[hash.data[idx]], 1);
     }    
 }
@@ -43,7 +43,7 @@ void prefix_sum_shift() {
 
 void reindex() {
     int idx = int(gl_GlobalInvocationID.x);
-    if (idx >= params.agent_count) return;
+    if (idx >= int_params.agent_count) return;
 
     int curr_hash = hash.data[idx];
 
@@ -53,19 +53,19 @@ void reindex() {
 
 void main() {
     
-    if (params.stage == 0.0) {
+    if (int_params.stage == 0) {
         zero_hashes();
     }
-    else if (params.stage == 1.0) {
+    else if (int_params.stage == 1) {
         sum();
     }
-    else if (params.stage == 2.0) {
+    else if (int_params.stage == 2) {
         prefix_sum();
     }
-    else if (params.stage == 3.0) {
+    else if (int_params.stage == 3) {
         prefix_sum_shift();
     }
-    else if (params.stage == 4.0) {
+    else if (int_params.stage == 4) {
         reindex();
     }
 }

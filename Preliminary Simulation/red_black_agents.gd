@@ -161,10 +161,12 @@ var debugging_data_buffer: RID
 ## Uniform for the previou sbuffer
 var debugging_data_uniform: RDUniform
 
-## Buffer that stores the tunable parameters.
-var param_buffer: RID
+## Buffers that store the tunable parameters.
+var int_param_buffer: RID
+var float_param_buffer: RID
 ## Uniform for the previous buffer.
-var param_uniform: RDUniform
+var int_param_uniform: RDUniform
+var float_param_uniform: RDUniform
 
 var hash_size: int = 32
 var hashes: Vector2i = Vector2i.ZERO
@@ -318,27 +320,29 @@ func gpu_process(delta: float):
 		frame += 1
 	
 	#var time_before: float = Time.get_ticks_msec() / 1000.0
-	var param_buffer_bytes: PackedByteArray = []
+	var float_param_buffer_bytes: PackedByteArray = generate_float_parameter_buffer(delta)
+	rendering_device.buffer_update(float_param_buffer, 0, float_param_buffer_bytes.size(), float_param_buffer_bytes)
+	var int_param_buffer_bytes: PackedByteArray = generate_int_parameter_buffer(0)
 	
 	# Hash setup
 	if use_spatial_hash:
 		
 		var hashing_start: float = Time.get_ticks_msec() / 1000.0
 		
-		param_buffer_bytes = generate_parameter_buffer(delta, 0) 
-		rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
+		int_param_buffer_bytes = generate_int_parameter_buffer(0) 
+		rendering_device.buffer_update(int_param_buffer, 0, int_param_buffer_bytes.size(), int_param_buffer_bytes)
 		run_compute(hash_pipeline, maxi(count, hash_count))
-		param_buffer_bytes = generate_parameter_buffer(delta, 1) 
-		rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
+		int_param_buffer_bytes = generate_int_parameter_buffer(1) 
+		rendering_device.buffer_update(int_param_buffer, 0, int_param_buffer_bytes.size(), int_param_buffer_bytes)
 		run_compute(hash_pipeline, maxi(count, hash_count))
-		param_buffer_bytes = generate_parameter_buffer(delta, 2) 
-		rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
+		int_param_buffer_bytes = generate_int_parameter_buffer(2) 
+		rendering_device.buffer_update(int_param_buffer, 0, int_param_buffer_bytes.size(), int_param_buffer_bytes)
 		run_compute(hash_pipeline, maxi(count, hash_count))
-		param_buffer_bytes = generate_parameter_buffer(delta, 3) 
-		rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
+		int_param_buffer_bytes = generate_int_parameter_buffer(3) 
+		rendering_device.buffer_update(int_param_buffer, 0, int_param_buffer_bytes.size(), int_param_buffer_bytes)
 		run_compute(hash_pipeline, maxi(count, hash_count))
-		param_buffer_bytes = generate_parameter_buffer(delta, 4) 
-		rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
+		int_param_buffer_bytes = generate_int_parameter_buffer(4) 
+		rendering_device.buffer_update(int_param_buffer, 0, int_param_buffer_bytes.size(), int_param_buffer_bytes)
 		run_compute(hash_pipeline, maxi(count, hash_count))
 		
 		#print("Time: " + str(Time.get_ticks_msec() / 1000.0 - hashing_start))
@@ -346,23 +350,23 @@ func gpu_process(delta: float):
 	#print("Finished hashing")
 	
 	# First pass
-	param_buffer_bytes = generate_parameter_buffer(delta, 0)
-	rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
-	run_compute(agent_pipeline, maxi(count, hash_count))
+	int_param_buffer_bytes = generate_int_parameter_buffer(0)
+	rendering_device.buffer_update(int_param_buffer, 0, int_param_buffer_bytes.size(), int_param_buffer_bytes)
+	run_compute(agent_pipeline, maxi(count, agent_count))
 	
 	RenderingServer.force_sync() # May not be necessary
 	
 	# Second pass
-	param_buffer_bytes = generate_parameter_buffer(delta, 1)
-	rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
-	run_compute(agent_pipeline, maxi(count, hash_count))
+	int_param_buffer_bytes = generate_int_parameter_buffer(1)
+	rendering_device.buffer_update(int_param_buffer, 0, int_param_buffer_bytes.size(), int_param_buffer_bytes)
+	run_compute(agent_pipeline, maxi(count, agent_count))
 
 	RenderingServer.force_sync() # May not be necessary
 	
 	# Third pass
-	param_buffer_bytes = generate_parameter_buffer(delta, 2)
-	rendering_device.buffer_update(param_buffer, 0, param_buffer_bytes.size(), param_buffer_bytes)
-	run_compute(agent_pipeline, maxi(count, hash_count))
+	int_param_buffer_bytes = generate_int_parameter_buffer(2)
+	rendering_device.buffer_update(int_param_buffer, 0, int_param_buffer_bytes.size(), int_param_buffer_bytes)
+	run_compute(agent_pipeline, maxi(count, agent_count))
 	
 	#print("Time taken: " + str(Time.get_ticks_msec() / 1000.0 - time_before))
 	
@@ -371,24 +375,33 @@ func gpu_process(delta: float):
 	if parameters["save"] == true:
 		sim_file.store_var((agent_data_1_texture_rd.get_image().get_data().to_float32_array()))
 
-func generate_parameter_buffer(delta: float, stage: float) -> PackedByteArray:
+func generate_int_parameter_buffer(stage: int) -> PackedByteArray:
+	var ints: PackedInt32Array = [
+		count,
+		stage,
+		int(use_spatial_hash),
+		int(use_locomotion_targets),
+		parameters["constraint_type"],
+		walls.size(),
+		0,
+		0
+	]
+	
+	return ints.to_byte_array()
+
+func generate_float_parameter_buffer(delta: float) -> PackedByteArray:
 	var floats: PackedFloat32Array = [
 		image_size,
-		count,
 		world_size.x,
 		world_size.y,
 		radius,
 		radius * radius * 1.05 * 1.05, #radius_squared
 		delta,
-		stage, # "Stage" variable,
-		float(use_spatial_hash),
-		float(use_locomotion_targets),
 		click_location.x,
 		click_location.y,
 		parameters["neighbour_radius"],
-		parameters["constraint_type"],
-		walls.size(), # Number of walls
 		0.0, # Padding
+		0.0, # Padding,
 		0.0 # Padding
 	]
 	
@@ -404,6 +417,7 @@ func generate_parameter_buffer(delta: float, stage: float) -> PackedByteArray:
 ## The compute processing that is called every frame.
 ## num refers to the number of objects being operated on. 
 func run_compute(pipeline: RID, num: int):
+	print(num)
 	var compute_list: int = rendering_device.compute_list_begin()
 	rendering_device.compute_list_bind_compute_pipeline(compute_list, pipeline)
 	#rendering_device.compute_list_bind_uniform_set(compute_list, uniform_set, 0)
@@ -467,14 +481,18 @@ func setup_compute():
 	debugging_data_buffer = generate_packed_array_buffer(debugging_data)
 	debugging_data_uniform = generate_compute_uniform(debugging_data_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 10)
 	
-	var param_buffer_bytes: PackedByteArray = generate_parameter_buffer(0, 0)
-	param_buffer = rendering_device.storage_buffer_create(param_buffer_bytes.size(), param_buffer_bytes)
-	param_uniform = generate_compute_uniform(param_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 11)
+	var int_param_buffer_bytes: PackedByteArray = generate_int_parameter_buffer(0)
+	int_param_buffer = rendering_device.storage_buffer_create(int_param_buffer_bytes.size(), int_param_buffer_bytes)
+	int_param_uniform = generate_compute_uniform(int_param_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 11)
+	
+	var float_param_buffer_bytes: PackedByteArray = generate_float_parameter_buffer(0)
+	float_param_buffer = rendering_device.storage_buffer_create(float_param_buffer_bytes.size(), float_param_buffer_bytes)
+	float_param_uniform = generate_compute_uniform(float_param_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 12)
 	
 	#region Hash Descriptor Set
 	
-	var hash_param_buffer_bytes: PackedByteArray = PackedInt32Array([hash_size, hashes.x, hashes.y, hash_count]).to_byte_array()
-	hash_params_buffer = rendering_device.storage_buffer_create(hash_param_buffer_bytes.size(), hash_param_buffer_bytes)
+	var hash_float_param_buffer_bytes: PackedByteArray = PackedInt32Array([hash_size, hashes.x, hashes.y, hash_count]).to_byte_array()
+	hash_params_buffer = rendering_device.storage_buffer_create(hash_float_param_buffer_bytes.size(), hash_float_param_buffer_bytes)
 	var hash_params_uniform: RDUniform = generate_compute_uniform(hash_params_buffer, RenderingDevice.UNIFORM_TYPE_STORAGE_BUFFER, 0)
 	
 	hash_buffer = generate_int_buffer(agent_count)
@@ -525,7 +543,8 @@ func setup_compute():
 		agent_tracked_uniform, # 8
 		walls_uniform, # 9
 		debugging_data_uniform, # 10
-		param_uniform, # 11
+		int_param_uniform, # 11
+		float_param_uniform # 12
 	]
 	
 	hash_bindings = [

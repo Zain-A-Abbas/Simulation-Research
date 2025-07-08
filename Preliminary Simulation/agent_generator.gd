@@ -23,7 +23,7 @@ func opposing_agents(red_black_agents: RedBlackAgents):
 	red_black_agents.count = red_black_agents.agent_count
 	red_black_agents.agent_positions.append_array([
 		Vector2(200, 200),
-		Vector2(500, 200)
+		Vector2(350, 200)
 		])
 	red_black_agents.agent_velocities.append_array([
 		Vector2(20, 0),
@@ -194,3 +194,8 @@ func generate_agents(red_black_agents: RedBlackAgents):
 			escape_test(red_black_agents)
 		RedBlackAgents.Scenarios.RETARGETING_TEST:
 			retargeting_test(red_black_agents)
+	
+	red_black_agents.agent_positions.resize(red_black_agents.agent_positions.size() * 2)
+	red_black_agents.count = red_black_agents.agent_count
+	print(red_black_agents.agent_positions.size())
+	print(red_black_agents.agent_count)

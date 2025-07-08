@@ -54,26 +54,32 @@ layout(set = 0, binding = 10, std430) restrict buffer DebuggingData {
     float padding_3; // unused as of yet
 } debugging_data;
 
+layout (set = 0, binding = 11, std430) restrict buffer IntParams {
+    int agent_count; // 0
+    int stage; // 4
+    int use_spatial_hash; // 8
+    int use_locomotion_targets; // 12
+    int constraint_type; // 0
+    int wall_count; // 4
+    int padding; // 8
+    int padding_2; // 12
+} int_params;
+
 // Parameters that are exposed/decided on the CPU-side. Stores data typically not expected to be changed once it reaches the GPU.
-layout(set = 0, binding = 11, std430) restrict buffer Params {
+layout(set = 0, binding = 12, std430) restrict buffer FloatParams {
     float image_size; // 0 (Counting byte alignment)
-    float agent_count; // 4
-    float world_width; // 8
-    float world_height; // 12
-    float radius; // 0
-    float radius_squared; // 4 
-    float delta; // 8
-    float stage; // 12
-    float use_spatial_hash; // 0
-    float use_locomotion_targets; // 4 
+    float world_width; // 4
+    float world_height; // 8
+    float radius; // 12
+    float radius_squared; // 0 
+    float delta; // 4
     float click_x; // 8
     float click_y; // 12
     float neighbour_radius; // 0
-    float constraint_type; // 4
-    float wall_count; // 8
-    float padding_2; // 12
-    float padding_3; // 0
-} params;
+    float padding; // 4
+    float padding_2; // 8
+    float padding_3; // 12
+} float_params;
 
 layout(set = 1, binding = 0, std430) restrict buffer HashParams {
     int hash_size;
