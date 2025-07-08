@@ -210,7 +210,7 @@ void correctionsStage(int idx) {
 
     int iter = 1;
     if (int_params.constraint_type == 1) {
-        iter = 8;
+        iter = 4;
     }
 
 
@@ -254,10 +254,6 @@ void correctionsStage(int idx) {
                 }
             }
             
-            if (delta_corrections.data[idx].z > 0.0) {
-                //agent_pos.data[idx] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
-                agent_pos.data[idx + int_params.agent_count] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
-            }
 
         }
         else {
@@ -273,6 +269,12 @@ void correctionsStage(int idx) {
                 }
             }
         }
+
+        if (int_params.use_spatial_hash == 1 && delta_corrections.data[idx].z > 0.0) {
+            //agent_pos.data[idx] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
+            agent_pos.data[idx + int_params.agent_count] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
+        }
+
     }
 
 
