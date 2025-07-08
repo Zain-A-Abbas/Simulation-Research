@@ -27,6 +27,7 @@ const WALL_INFORMATION = preload("res://addons/simulation_interface/wall_informa
 @onready var constraint_type: OptionButton = %ConstraintType
 @onready var add_wall_button: Button = %AddWallButton
 @onready var wall_instance_v_box: VBoxContainer = %WallInstanceVBox
+@onready var iteration_count_spinbox: SpinBox = %IterationCountSpinbox
 
 @onready var error_label: Label = %ErrorLabel
 
@@ -69,7 +70,8 @@ func start_simulation():
 		"opposing_groups_x_distance": opposing_distance_spinbox_x.value,
 		"opposing_groups_y_offset": opposing_distance_spinbox_y.value,
 		"constraint_type": constraint_type.selected,
-		"walls": get_wall_data()
+		"walls": get_wall_data(),
+		"iteration_count": iteration_count_spinbox.value
 	}
 	
 	var config_file: FileAccess = FileAccess.open(config_file_location, FileAccess.WRITE)

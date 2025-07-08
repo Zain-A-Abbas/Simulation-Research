@@ -324,6 +324,8 @@ func gpu_process(delta: float):
 	rendering_device.buffer_update(float_param_buffer, 0, float_param_buffer_bytes.size(), float_param_buffer_bytes)
 	var int_param_buffer_bytes: PackedByteArray = generate_int_parameter_buffer(0)
 	
+	
+	
 	# Hash setup
 	if use_spatial_hash:
 		
@@ -383,7 +385,7 @@ func generate_int_parameter_buffer(stage: int) -> PackedByteArray:
 		int(use_locomotion_targets),
 		parameters["constraint_type"],
 		walls.size(),
-		0,
+		parameters["iteration_count"],
 		0
 	]
 	
@@ -417,7 +419,6 @@ func generate_float_parameter_buffer(delta: float) -> PackedByteArray:
 ## The compute processing that is called every frame.
 ## num refers to the number of objects being operated on. 
 func run_compute(pipeline: RID, num: int):
-	print(num)
 	var compute_list: int = rendering_device.compute_list_begin()
 	rendering_device.compute_list_bind_compute_pipeline(compute_list, pipeline)
 	#rendering_device.compute_list_bind_uniform_set(compute_list, uniform_set, 0)

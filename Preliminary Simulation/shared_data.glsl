@@ -61,7 +61,7 @@ layout (set = 0, binding = 11, std430) restrict buffer IntParams {
     int use_locomotion_targets; // 12
     int constraint_type; // 0
     int wall_count; // 4
-    int padding; // 8
+    int iteration_count; // 8
     int padding_2; // 12
 } int_params;
 

@@ -255,6 +255,21 @@ min_value = 1.0
 max_value = 1024.0
 value = 64.0
 
+[node name="IterationCountSettingsHbox" type="HBoxContainer" parent="VBoxContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="Label" type="Label" parent="VBoxContainer/VBoxContainer/IterationCountSettingsHbox"]
+layout_mode = 2
+text = "Iteration Count"
+
+[node name="IterationCountSpinbox" type="SpinBox" parent="VBoxContainer/VBoxContainer/IterationCountSettingsHbox"]
+unique_name_in_owner = true
+layout_mode = 2
+min_value = 1.0
+max_value = 32.0
+value = 1.0
+
 [node name="HSeparator" type="HSeparator" parent="VBoxContainer/VBoxContainer"]
 layout_mode = 2
 

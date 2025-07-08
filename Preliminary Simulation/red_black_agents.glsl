@@ -88,8 +88,8 @@ vec4 shortRangeConstraint(int i, int j) {
     
         delta_corrections.data[i].xy += 0.5 * overlap * grad_i_v;
         delta_corrections.data[i].z += 1.0;
-        //delta_corrections.data[j].xy += -0.5 * overlap * grad_i_v;
-        //delta_corrections.data[j].z += 1.0;
+        delta_corrections.data[j].xy += -0.5 * overlap * grad_i_v;
+        delta_corrections.data[j].z += 1.0;
     
         return vec4(0.0);
     }
@@ -208,13 +208,10 @@ void correctionsStage(int idx) {
     vec4 local_corrections = vec4(0.0);
     delta_corrections.data[idx] = vec4(0.0);
 
-    int iter = 1;
-    if (int_params.constraint_type == 1) {
-        iter = 4;
-    }
 
 
-    for (int iter_count = 0; iter_count < iter; iter_count++) {
+
+    for (int iter_count = 0; iter_count < int_params.iteration_count; iter_count++) {
 
         if (int_params.use_spatial_hash == 1) {
             delta_corrections.data[idx] = vec4(0.0);
@@ -255,14 +252,16 @@ void correctionsStage(int idx) {
             }
             
 
-        }
-        else {
+        } else {
             for (int j = 0; j < int_params.agent_count; j++) {
                 if (j == idx) {continue;}
                 highlightAgent(idx, j);
                 if (int_params.constraint_type == 1) {
                     //local_corrections += shortRangeConstraint(idx, j);
-                    shortRangeConstraint(idx, j);
+                    if (idx < j) {
+
+                        shortRangeConstraint(idx, j);
+                    }
                 }
                 else {
                     local_corrections += longRangeConstraint(idx, j);
@@ -270,7 +269,7 @@ void correctionsStage(int idx) {
             }
         }
 
-        if (int_params.use_spatial_hash == 1 && delta_corrections.data[idx].z > 0.0) {
+        if (int_params.constraint_type == 1 && delta_corrections.data[idx].z > 0.0) {
             //agent_pos.data[idx] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
             agent_pos.data[idx + int_params.agent_count] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
         }
