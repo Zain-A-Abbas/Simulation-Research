@@ -234,7 +234,9 @@ void correctionsStage(int idx) {
                         highlightAgent(idx, other_agent);
 
                         if (int_params.constraint_type == 1) {
+                            if (idx < other_agent) {
                                 shortRangeConstraint(idx, other_agent);
+                            }
                         }
                         else {
                             longRangeConstraint(idx, other_agent);
