@@ -86,10 +86,10 @@ vec4 shortRangeConstraint(int i, int j) {
         vec2 grad_i = ip - jp;
         const vec2 grad_i_v = -grad_i / dist;
     
-        delta_corrections.data[i].xy += 0.5 * overlap * grad_i_v;
-        delta_corrections.data[i].z += 1.0;
-        delta_corrections.data[j].xy += -0.5 * overlap * grad_i_v;
-        delta_corrections.data[j].z += 1.0;
+        delta_corrections.data[i].xy += overlap * grad_i_v;
+        delta_corrections.data[i].z += 2.0;
+        delta_corrections.data[j].xy += -overlap * grad_i_v;
+        delta_corrections.data[j].z += 2.0;
     
         return vec4(0.0);
     }
@@ -145,9 +145,6 @@ vec4 longRangeConstraint(int i, int j) {
             s * INV_MASS * grad_y_i,
             MAX_DELTA
             );   
-
-
-        return vec4(delta_correction_i.x, delta_correction_i.y, 1.0, 0.0);       
                                     
         vec2 delta_correction_j = clamp2D(
             s * INV_MASS * grad_x_j,
@@ -205,16 +202,12 @@ void correctionsStage(int idx) {
 
     agent_tracked.data[idx] = 0.0;
 
-    vec4 local_corrections = vec4(0.0);
     delta_corrections.data[idx] = vec4(0.0);
-
-
 
 
     for (int iter_count = 0; iter_count < int_params.iteration_count; iter_count++) {
 
         if (int_params.use_spatial_hash == 1) {
-            delta_corrections.data[idx] = vec4(0.0);
             int agent_hash = hash.data[idx];
             vec2 hash_location = one_to_two(agent_hash, hash_params.hash_x);
 
@@ -241,11 +234,10 @@ void correctionsStage(int idx) {
                         highlightAgent(idx, other_agent);
 
                         if (int_params.constraint_type == 1) {
-                            //local_corrections += shortRangeConstraint(idx, other_agent);
-                            shortRangeConstraint(idx, other_agent);
+                                shortRangeConstraint(idx, other_agent);
                         }
                         else {
-                            local_corrections += longRangeConstraint(idx, other_agent);
+                            longRangeConstraint(idx, other_agent);
                         }
                     } 
                 }
@@ -253,62 +245,49 @@ void correctionsStage(int idx) {
             
 
         } else {
-            for (int j = 0; j < int_params.agent_count; j++) {
+            for (int j = idx; j < int_params.agent_count; j++) {
                 if (j == idx) {continue;}
                 highlightAgent(idx, j);
                 if (int_params.constraint_type == 1) {
-                    //local_corrections += shortRangeConstraint(idx, j);
                     if (idx < j) {
-
                         shortRangeConstraint(idx, j);
                     }
                 }
                 else {
-                    local_corrections += longRangeConstraint(idx, j);
+                    longRangeConstraint(idx, j);
                 }
             }
         }
 
-        if (int_params.constraint_type == 1 && delta_corrections.data[idx].z > 0.0) {
-            //agent_pos.data[idx] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
-            agent_pos.data[idx + int_params.agent_count] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
-        }
 
     }
-
-
-    delta_corrections.data[idx] += local_corrections;
 
 }
 
 void moveStage(int idx) {
 
-    int local_idx = int(gl_LocalInvocationID.x);
 
-    agent_vel.data[idx] = clamp2D(agent_vel.data[idx].x, agent_vel.data[idx].y, MAX_SPEED);
-    
-    if (int_params.constraint_type == 1) {
-            agent_pos.data[idx] = agent_pos.data[idx + int_params.agent_count];
-    }
-    else if (int_params.constraint_type == 0 && delta_corrections.data[idx].z > 0.0) {
-        agent_vel.data[idx] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
-    }
-    delta_corrections.data[idx] = vec4(0.0);
+    //agent_vel.data[idx] = clamp2D(agent_vel.data[idx].x, agent_vel.data[idx].y, MAX_SPEED);
     
     agent_pos.data[idx] += agent_vel.data[idx] * float_params.delta;
+
+    if (delta_corrections.data[idx].z > 0.0) {
+        agent_pos.data[idx] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
+        delta_corrections.data[idx] = vec4(0.0);
+    }
+    
+    // idx + params.agent_count is the old position
+    agent_vel.data[idx] = (agent_pos.data[idx] - agent_pos.data[idx + int_params.agent_count]) / float_params.delta; // set the velocity to the actual position moved
+
+    agent_vel.data[idx] = clamp2D(agent_vel.data[idx].x, agent_vel.data[idx].y, MAX_SPEED);
+    agent_vel.data[idx] = ksi * agent_pref_vel.data[idx]  + (1.0-ksi) * agent_vel.data[idx]; // Blending "actual" velocity with preferred velocity
 
     if (agent_pos.data[idx].x > float_params.world_width) {agent_pos.data[idx].x -= float_params.world_width;}
     if (agent_pos.data[idx].y > float_params.world_height) {agent_pos.data[idx].y -= float_params.world_height;}
     if (agent_pos.data[idx].x < 0) {agent_pos.data[idx].x += float_params.world_width;}
     if (agent_pos.data[idx].y < 0) {agent_pos.data[idx].y += float_params.world_height;}
 
-    // Turns this agent's index into x/y to find the corresponding pixel on the texture
-    ivec2 pixel_coord = ivec2(
-        int(mod(idx, float_params.image_size)),
-        int(idx / float_params.image_size)
-    );
 
-    agent_vel.data[idx] = ksi * agent_pref_vel.data[idx]  + (1.0-ksi) * agent_vel.data[idx];
 
     if (int_params.use_spatial_hash > 0.0) {
         hash.data[idx] = int(agent_pos.data[idx].x / hash_params.hash_size) + int(agent_pos.data[idx].y / hash_params.hash_size) * hash_params.hash_x;
@@ -339,6 +318,12 @@ void moveStage(int idx) {
             debugging_data.tracked_idx = idx;
         }
     }
+
+    // Turns this agent's index into x/y to find the corresponding pixel on the texture
+    ivec2 pixel_coord = ivec2(
+        int(mod(idx, float_params.image_size)),
+        int(idx / float_params.image_size)
+    );
 
     imageStore(agent_data, pixel_coord, vec4(agent_pos.data[idx].x, agent_pos.data[idx].y, agent_vel.data[idx].x, agent_vel.data[idx].y));
     imageStore(agent_data_2, pixel_coord, vec4(float(debugging_data.tracked_idx == idx), agent_tracked.data[idx], 0.0, 0.0));
