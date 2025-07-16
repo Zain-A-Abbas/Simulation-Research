@@ -99,8 +99,8 @@ vec4 shortRangeConstraint(int i, int j) {
 
 vec4 longRangeConstraint(int i, int j) {
 
-    vec2 ip = agent_pos.data[i] + agent_vel.data[i] * float_params.delta;
-    vec2 jp = agent_pos.data[j] + agent_vel.data[j] * float_params.delta;
+    vec2 ip = agent_pos.data[i];
+    vec2 jp = agent_pos.data[j];
     
     
     const float dist = distance(agent_pos.data[i], agent_pos.data[j]);
