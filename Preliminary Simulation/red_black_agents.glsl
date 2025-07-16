@@ -78,8 +78,8 @@ vec4 wallConstraint(int agentIdx, int wallIdx) {
 }
 
 vec4 shortRangeConstraint(int i, int j) {
-    vec2 ip = agent_pos.data[i + int_params.agent_count] + agent_vel.data[i] * float_params.delta;
-    vec2 jp = agent_pos.data[j] + agent_vel.data[j] * float_params.delta;
+    vec2 ip = agent_pos.data[i];
+    vec2 jp = agent_pos.data[j];
     const float dist = distance(ip, jp);
     const float overlap = dist - 2*float_params.radius;
     if (overlap < 0.0){
@@ -266,29 +266,33 @@ void correctionsStage(int idx) {
 
 }
 
+void applyDeltaStage(int idx) {
+    if (delta_corrections.data[idx].z > 0.0) {
+        agent_pos.data[idx] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
+        delta_corrections.data[idx] = vec4(0.0);
+    }
+}
+
 void moveStage(int idx) {
 
 
     //agent_vel.data[idx] = clamp2D(agent_vel.data[idx].x, agent_vel.data[idx].y, MAX_SPEED);
     
-    agent_pos.data[idx] += agent_vel.data[idx] * float_params.delta;
+    //agent_pos.data[idx] += agent_vel.data[idx] * float_params.delta;
 
-    if (delta_corrections.data[idx].z > 0.0) {
-        agent_pos.data[idx] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
-        delta_corrections.data[idx] = vec4(0.0);
-    }
     
     // idx + params.agent_count is the old position
     agent_vel.data[idx] = (agent_pos.data[idx] - agent_pos.data[idx + int_params.agent_count]) / float_params.delta; // set the velocity to the actual position moved
 
     agent_vel.data[idx] = clamp2D(agent_vel.data[idx].x, agent_vel.data[idx].y, MAX_SPEED);
-    agent_vel.data[idx] = ksi * agent_pref_vel.data[idx]  + (1.0-ksi) * agent_vel.data[idx]; // Blending "actual" velocity with preferred velocity
+    agent_vel.data[idx] = ksi * agent_pref_vel.data[idx]  + (1.0-ksi) * agent_vel.data[idx]; // Blending current velocity with preferred velocity
 
     if (agent_pos.data[idx].x > float_params.world_width) {agent_pos.data[idx].x -= float_params.world_width;}
     if (agent_pos.data[idx].y > float_params.world_height) {agent_pos.data[idx].y -= float_params.world_height;}
     if (agent_pos.data[idx].x < 0) {agent_pos.data[idx].x += float_params.world_width;}
     if (agent_pos.data[idx].y < 0) {agent_pos.data[idx].y += float_params.world_height;}
 
+    agent_pos.data[idx + int_params.agent_count] = agent_pos.data[idx]; // Updates the "start of frame" positions for the next frame
 
 
     if (int_params.use_spatial_hash > 0.0) {
@@ -338,11 +342,13 @@ void main() {
 
     if (int_params.stage == 0) {
         wallCorrections(idx);
+        agent_pos.data[idx] += agent_vel.data[idx] * float_params.delta;
     } else if (int_params.stage == 1) {
-        agent_pos.data[idx + int_params.agent_count] = agent_pos.data[idx];
         correctionsStage(idx);
+    } else if (int_params.stage == 2) {
+        applyDeltaStage(idx);
     }
-    else if (int_params.stage == 2) {
+    else if (int_params.stage == 3) {
         moveStage(idx);
     }
 

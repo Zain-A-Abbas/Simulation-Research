@@ -195,7 +195,7 @@ func generate_agents(red_black_agents: RedBlackAgents):
 		RedBlackAgents.Scenarios.RETARGETING_TEST:
 			retargeting_test(red_black_agents)
 	
-	red_black_agents.agent_positions.resize(red_black_agents.agent_positions.size() * 2)
+	red_black_agents.agent_positions.append_array(red_black_agents.agent_positions.duplicate())
 	red_black_agents.count = red_black_agents.agent_count
 	print(red_black_agents.agent_positions.size())
 	print(red_black_agents.agent_count)

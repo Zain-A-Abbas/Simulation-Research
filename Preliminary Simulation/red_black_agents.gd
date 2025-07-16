@@ -351,22 +351,28 @@ func gpu_process(delta: float):
 	
 	#print("Finished hashing")
 	
-	# First pass
+	# Wall collisions and velocity stage
 	int_param_buffer_bytes = generate_int_parameter_buffer(0)
 	rendering_device.buffer_update(int_param_buffer, 0, int_param_buffer_bytes.size(), int_param_buffer_bytes)
 	run_compute(agent_pipeline, maxi(count, agent_count))
 	
 	RenderingServer.force_sync() # May not be necessary
 	
-	# Second pass
-	int_param_buffer_bytes = generate_int_parameter_buffer(1)
-	rendering_device.buffer_update(int_param_buffer, 0, int_param_buffer_bytes.size(), int_param_buffer_bytes)
-	run_compute(agent_pipeline, maxi(count, agent_count))
+	for iteration in maxi(1, parameters["iteration_count"]):
+		# Delta corrections calculations stage
+		int_param_buffer_bytes = generate_int_parameter_buffer(1)
+		rendering_device.buffer_update(int_param_buffer, 0, int_param_buffer_bytes.size(), int_param_buffer_bytes)
+		run_compute(agent_pipeline, maxi(count, agent_count))
 
-	RenderingServer.force_sync() # May not be necessary
+		RenderingServer.force_sync() # May not be necessary
+		
+		# Delta corrections applications stage
+		int_param_buffer_bytes = generate_int_parameter_buffer(2)
+		rendering_device.buffer_update(int_param_buffer, 0, int_param_buffer_bytes.size(), int_param_buffer_bytes)
+		run_compute(agent_pipeline, maxi(count, agent_count))
 	
-	# Third pass
-	int_param_buffer_bytes = generate_int_parameter_buffer(2)
+	# Final move stage
+	int_param_buffer_bytes = generate_int_parameter_buffer(3)
 	rendering_device.buffer_update(int_param_buffer, 0, int_param_buffer_bytes.size(), int_param_buffer_bytes)
 	run_compute(agent_pipeline, maxi(count, agent_count))
 	
