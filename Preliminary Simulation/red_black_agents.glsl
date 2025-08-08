@@ -8,8 +8,8 @@ const float EPSILON = 0.0001;
 const float C_TAO_MAX = 20.0;
 const float C_TAO_0 = 20.0;
 const float dv_i = 1.0;
-const float C_LONG_RANGE_STIFF = 0.32;
-const float MAX_DELTA = 110.9;
+const float C_LONG_RANGE_STIFF = 0.02;
+const float MAX_DELTA = 0.9;
 const float MAX_SPEED = 32.0;
 const float ksi = 0.1;
 
@@ -77,7 +77,7 @@ vec4 wallConstraint(int agentIdx, int wallIdx) {
     return vec4(0.0);
 }
 
-vec4 shortRangeConstraint(int i, int j) {
+void shortRangeConstraint(int i, int j) {
     vec2 ip = agent_pos.data[i];
     vec2 jp = agent_pos.data[j];
     const float dist = distance(ip, jp);
@@ -90,83 +90,78 @@ vec4 shortRangeConstraint(int i, int j) {
         delta_corrections.data[i].z += 2.0;
         delta_corrections.data[j].xy += -overlap * grad_i_v;
         delta_corrections.data[j].z += 2.0;
-    
-        return vec4(0.0);
     }
-    return vec4(0.0);
 }
 
+void longRangeConstraint(int i, int j) {
 
-vec4 longRangeConstraint(int i, int j) {
-
+    
+    // ip and jp are position taking into account velocity
+    // i/j_start_pos are position at start of the current iteration (current frame of execution if only 1 iteration)
     vec2 ip = agent_pos.data[i];
     vec2 jp = agent_pos.data[j];
+    vec2 i_start_pos = agent_pos.data[i + int_params.agent_count];
+    vec2 j_start_pos = agent_pos.data[j + int_params.agent_count];
+
+    const float dist = distance(ip, jp);
     
+    const float radius_init = float_params.radius * 2.0;
     
-    const float dist = distance(agent_pos.data[i], agent_pos.data[j]);
-    float radius_sq = float_params.radius_squared; // Changing this to something like ((float_params.radius * 2) * (float_params.radius * 2)) makes them collide at the edges
-    if (dist < float_params.radius) {
-        radius_sq = pow((float_params.radius * 2 - dist), 2.0);    
-    }
-    const float v_x = (ip.x - agent_pos.data[i].x) / float_params.delta - (jp.x - agent_pos.data[j].x) / float_params.delta;
-    const float v_y = (ip.y - agent_pos.data[i].y) / float_params.delta - (jp.y - agent_pos.data[j].y) / float_params.delta;
-    const float x0 = agent_pos.data[i].x - agent_pos.data[j].x; 
-    const float y0 = agent_pos.data[i].y - agent_pos.data[j].y; 
+    float radius_sq = radius_init > dist ? (radius_init - dist) * (radius_init - dist) : radius_init * radius_init;
+
+    const float v_x = (ip.x - i_start_pos.x) / float_params.delta - (jp.x - j_start_pos.x) / float_params.delta;
+    const float v_y = (ip.y - i_start_pos.y) / float_params.delta - (jp.y - j_start_pos.y) / float_params.delta;
+    //const float v_d = v_x
+
+    const float x0 = i_start_pos.x - j_start_pos.x; 
+    const float y0 = i_start_pos.y - j_start_pos.y; 
     const float v_sq = v_x * v_x + v_y * v_y;
     const float x0_sq = x0 * x0;
     const float y0_sq = y0 * y0;
     const float x_sq = x0_sq + y0_sq; 
-    const float a = v_sq;
     const float b = -v_x * x0 - v_y * y0;   // b = -1 * v_.dot(x0_).  Have to check this. 
-    const float b_sq = b * b;
     const float c = x_sq - radius_sq;
-    const float d_sq = b_sq - a * c;
+    const float d_sq = b * b - v_sq * c;
     const float d = sqrt(d_sq);
-    const float tao = (b - d) / a;
-    
-    float lengthV;
-    if (d_sq > 0.0 && abs(a) > EPSILON && tao > 0 && tao < C_TAO_MAX){  
+    const float tao = (b - d) / v_sq;
+    if (d_sq > 0.0 && abs(v_sq) > EPSILON && tao > 0 && tao < C_TAO_MAX){
+        
         const float clamp_tao = exp(-tao * tao / C_TAO_0);
         const float c_tao = clamp_tao;
         const float tao_sq = c_tao * c_tao;
-        const float grad_x_i = 2 * c_tao * ((dv_i / a) * ((-2.0 * v_x * tao) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d)));
-        const float grad_y_i = 2 * c_tao * ((dv_i / a) * ((-2.0 * v_y * tao) - (y0 + (v_x * x0 * y0 + v_y * (radius_sq - x0_sq)) / d)));
-        const float grad_x_j = -grad_x_i;
-        const float grad_y_j = -grad_y_i;
-        const float stiff = C_LONG_RANGE_STIFF * exp(-tao * tao / C_TAO_0);    //changed
-        const float s =  stiff * tao_sq / (INV_MASS * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) + INV_MASS  * (grad_y_j * grad_y_j + grad_x_j * grad_x_j));     //changed
+
+        const float grad_x_i = 2 * c_tao * ((dv_i / v_sq) * ((-2.0 * v_x * tao) - (x0 + (v_y * x0 * y0 + v_x * (radius_sq - y0_sq)) / d)));
+        const float grad_y_i = 2 * c_tao * ((dv_i / v_sq) * ((-2.0 * v_y * tao) - (y0 + (v_x * x0 * y0 + v_y * (radius_sq - x0_sq)) / d)));
 
 
-        //lengthV = sqrt( s * INV_MASS * grad_x_i * s * INV_MASS * grad_x_i 
-        //            +   s * INV_MASS * grad_y_i * s * INV_MASS * grad_y_i);
+        const float stiff = C_LONG_RANGE_STIFF * exp(-tao_sq / C_TAO_0);    //changed
+        const float s =  stiff * tao_sq / (INV_MASS * (grad_y_i * grad_y_i + grad_x_i * grad_x_i) * 2);     //changed
+
+
+        //float lengthV = sqrt(s * INV_MASS * grad_x_i * s * INV_MASS * grad_x_i 
+          //                  + s * INV_MASS * grad_y_i * s * INV_MASS * grad_y_i);
 
         vec2 delta_correction_i = clamp2D(
             s * INV_MASS * grad_x_i,
             s * INV_MASS * grad_y_i,
             MAX_DELTA
-            );   
-                                    
+            );           
+
         vec2 delta_correction_j = clamp2D(
-            s * INV_MASS * grad_x_j,
-            s * INV_MASS * grad_y_j,
+            s * INV_MASS * -grad_x_i,
+            s * INV_MASS * -grad_y_i,
             MAX_DELTA
-            ); 
+            );                  
 
-        delta_corrections.data[i].x += delta_correction_i.x;
-        delta_corrections.data[i].y += delta_correction_i.y;
-        delta_corrections.data[i].z += 1.0;
 
-        delta_corrections.data[j].x += delta_correction_j.x;
-        delta_corrections.data[j].y += delta_correction_j.y;
-        delta_corrections.data[j].z += 1.0;
+        delta_corrections.data[i].xy += delta_correction_i.xy * 2.0;
+        delta_corrections.data[j].xy += delta_correction_j.xy * 2.0;
+        delta_corrections.data[i].z += 2.0;
+        delta_corrections.data[j].z += 2.0;
 
-        /*agent_pos.data[i].x += delta_correction_i.x;
-        agent_pos.data[i].y += delta_correction_i.y;
-        agent_pos.data[j].x += delta_correction_j.x;
-        agent_pos.data[j].y += delta_correction_j.y;*/
     }
-    return vec4(0.0);
 }
+
 
 
 vec2 rotate_velocity(int idx) {
@@ -233,14 +228,14 @@ void correctionsStage(int idx) {
 
                         highlightAgent(idx, other_agent);
 
-                        if (int_params.constraint_type == 1) {
-                            if (idx < other_agent) {
+                        if (idx < other_agent) {
+                            if (int_params.constraint_type == 1) {
                                 shortRangeConstraint(idx, other_agent);
+                            } else if (int_params.constraint_type == 0) {
+                                longRangeConstraint(idx, other_agent);
                             }
                         }
-                        else {
-                            longRangeConstraint(idx, other_agent);
-                        }
+
                     } 
                 }
             }
@@ -250,13 +245,13 @@ void correctionsStage(int idx) {
             for (int j = idx; j < int_params.agent_count; j++) {
                 if (j == idx) {continue;}
                 highlightAgent(idx, j);
-                if (int_params.constraint_type == 1) {
-                    if (idx < j) {
+                if (idx < j) {
+                    if (int_params.constraint_type == 1) {
                         shortRangeConstraint(idx, j);
                     }
-                }
-                else {
-                    longRangeConstraint(idx, j);
+                    else if (int_params.constraint_type == 0) {
+                        longRangeConstraint(idx, j);
+                    }
                 }
             }
         }
@@ -268,7 +263,7 @@ void correctionsStage(int idx) {
 
 void applyDeltaStage(int idx) {
     if (delta_corrections.data[idx].z > 0.0) {
-        agent_pos.data[idx] += delta_corrections.data[idx].xy / delta_corrections.data[idx].z;
+        agent_pos.data[idx] += (delta_corrections.data[idx].xy / delta_corrections.data[idx].z);
         delta_corrections.data[idx] = vec4(0.0);
     }
 }
