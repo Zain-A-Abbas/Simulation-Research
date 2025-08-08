@@ -100,6 +100,7 @@ void longRangeConstraint(int i, int j) {
     // i/j_start_pos are position at start of the current iteration (current frame of execution if only 1 iteration)
     vec2 ip = agent_pos.data[i];
     vec2 jp = agent_pos.data[j];
+
     vec2 i_start_pos = agent_pos.data[i + int_params.agent_count];
     vec2 j_start_pos = agent_pos.data[j + int_params.agent_count];
 
@@ -162,8 +163,6 @@ void longRangeConstraint(int i, int j) {
     }
 }
 
-
-
 vec2 rotate_velocity(int idx) {
     vec2 curr_pos = agent_pos.data[idx];
     vec2 pref_vel = agent_pref_vel.data[idx];
@@ -192,8 +191,6 @@ void wallCorrections(int idx) {
 }
 
 void correctionsStage(int idx) {
-
-    int local_idx = int(gl_LocalInvocationID.x);
 
     agent_tracked.data[idx] = 0.0;
 
